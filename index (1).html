@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Keith GPT</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+  #scene-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+  canvas{display:block;width:100%;height:100%}
+  #bottom{background:#0a1520;padding:10px 14px 16px;border-top:1px solid #1e3050;flex-shrink:0}
+  #title{text-align:center;color:#f39c12;font-size:14px;font-weight:bold;letter-spacing:2px;margin-bottom:8px}
+  #setup-banner{background:#1a0a00;border:1px solid #cc4400;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:11px;color:#ffaa66;line-height:1.7}
+  #setup-banner a{color:#f39c12}
+  #key-input{width:100%;margin-top:5px;background:#0d1b2a;color:#e0f0ff;border:1px solid #cc4400;border-radius:6px;padding:7px 10px;font-family:'Courier New',monospace;font-size:12px;outline:none}
+  #key-input:focus{border-color:#f39c12}
+  #save-key-btn{margin-top:6px;background:#f39c12;color:#000;border:none;border-radius:6px;padding:6px 14px;font-family:'Courier New',monospace;font-size:11px;font-weight:bold;cursor:pointer}
+  #input-row{display:flex;gap:8px;align-items:center}
+  #question{flex:1;background:#1e2d3d;color:#e0f0ff;border:1px solid #2a4060;border-radius:8px;padding:10px 12px;font-family:'Courier New',monospace;font-size:13px;outline:none;caret-color:#e0f0ff}
+  #question::placeholder{color:#4a6080}
+  #question:focus{border-color:#3a6090}
+  #ask-btn{background:#2ecc71;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .15s}
+  #ask-btn:hover{background:#27ae60}
+  #ask-btn:disabled{background:#555;cursor:default}
+  #status{font-size:10px;color:#6688aa;margin-top:5px;min-height:13px;text-align:center}
+  #status.err{color:#e74c3c}
+  #status.ok{color:#2ecc71}
+</style>
+</head>
+<body>
+<div id="scene-wrap"><canvas id="c"></canvas></div>
+<div id="bottom">
+  <div id="title">⚗ KEITH GPT ⚗</div>
+  <div id="setup-banner" id="banner">
+    🔑 Get a <strong>free</strong> key at <a href="https://console.groq.com" target="_blank">console.groq.com</a> — no credit card needed. Paste it below:
+    <input type="password" id="key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+    <button id="save-key-btn" onclick="saveKey()">Save Key ✓</button>
+  </div>
+  <div id="input-row">
+    <input id="question" type="text" placeholder="Ask Keith anything..." maxlength="300">
+    <button id="ask-btn" onclick="ask()">ASK →</button>
+  </div>
+  <div id="status"></div>
+</div>
+
+<script>
+// ── KEY MANAGEMENT ────────────────────────────────────────────────────────
+let apiKey = localStorage.getItem('keith_groq_key') || '';
+if (apiKey) document.getElementById('setup-banner').style.display = 'none';
+
+function saveKey() {
+  const v = document.getElementById('key-input').value.trim();
+  if (!v) { setStatus('Paste your key first!','err'); return; }
+  apiKey = v;
+  localStorage.setItem('keith_groq_key', v);
+  document.getElementById('setup-banner').style.display = 'none';
+  setStatus('Key saved — ask Keith something!','ok');
+}
+
+// ── GROQ CALL (fetch with explicit headers) ───────────────────────────────
+const SYSTEM = `You are Keith GPT — a cool, knowledgeable science teacher.
+- Start almost EVERY response with "My man," or "Oh word?" (alternate naturally).
+- Be warm, enthusiastic, science-flavored, and encouraging.
+- Keep answers to 2–4 sentences max.`;
+
+async function callGroq(question) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'llama3-8b-8192',
+      messages: [
+        { role: 'system', content: SYSTEM },
+        { role: 'user',   content: question }
+      ],
+      max_tokens: 200,
+      temperature: 0.85
+    })
+  });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j = await res.json(); msg = j?.error?.message || msg; } catch(_){}
+    throw new Error('Groq ' + res.status + ': ' + msg);
+  }
+  const j = await res.json();
+  return j.choices[0].message.content.trim();
+}
+
+// ── UI STATE ──────────────────────────────────────────────────────────────
+let bubble = '', thinking = false, dots = 0;
+let kScale = 1.0, targetScale = 1.0;
+
+document.getElementById('question').addEventListener('keydown', e => {
+  if (e.key === 'Enter') ask();
+});
+
+async function ask() {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+  if (!apiKey) { setStatus('⚠ Save your Groq API key above first!','err'); return; }
+  document.getElementById('question').value = '';
+  document.getElementById('ask-btn').disabled = true;
+  bubble = ''; thinking = true; targetScale = 1.45;
+  setStatus('Connecting to Groq…');
+  try {
+    const answer = await callGroq(q);
+    bubble = answer;
+    setStatus('✓ Keith has spoken!','ok');
+  } catch(e) {
+    const msg = e.message || String(e);
+    // Common error hints
+    let hint = msg;
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      hint = 'Network blocked — try on a different WiFi or hotspot. (CORS/firewall)';
+    } else if (msg.includes('401')) {
+      hint = 'Invalid API key — check console.groq.com and re-paste it.';
+    } else if (msg.includes('429')) {
+      hint = 'Rate limited — wait a moment and try again.';
+    }
+    bubble = 'Oh word? ' + hint;
+    setStatus('❌ ' + hint, 'err');
+  }
+  thinking = false;
+  document.getElementById('ask-btn').disabled = false;
+  setTimeout(() => { targetScale = 1.0; }, 9000);
+  setTimeout(() => { bubble = ''; setStatus(''); }, 11500);
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.className = cls || '';
+}
+
+// ── CANVAS ────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, dpr = window.devicePixelRatio || 1;
+
+function resize() {
+  const wrap = document.getElementById('scene-wrap');
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+}
+window.addEventListener('resize', resize); resize();
+
+let bobT = 0, last = 0;
+
+function loop(ts) {
+  const dt = Math.min((ts-last)/1000, 0.1); last = ts;
+  bobT += dt*1.5;
+  kScale += (targetScale - kScale)*0.12;
+  if (thinking) dots += dt*3;
+  draw(); requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function draw() {
+  const c = ctx, p = dpr;
+  c.setTransform(p,0,0,p,0,0);
+  c.clearRect(0,0,W,H);
+  drawBg(c); drawDesk(c);
+  const cx = W/2, cy = H*0.50 + Math.sin(bobT)*2.5;
+  drawKeith(c,cx,cy,kScale);
+  if (thinking) drawThinking(c,cx,cy,kScale);
+  if (bubble)   drawBubble(c,cx,cy,kScale);
+}
+
+function rr(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+
+function drawBg(c) {
+  const wallH = H*0.62;
+  c.fillStyle='#1a2a1a'; c.fillRect(0,0,W,wallH);
+  c.fillStyle='#111108'; c.fillRect(0,wallH,W,H-wallH);
+
+  // chalkboard
+  const bx=W*0.20, by=12, bw=W*0.60, bh=H*0.44;
+  c.fillStyle='#0a3a0a'; c.strokeStyle='#2a5a2a'; c.lineWidth=5;
+  rr(c,bx,by,bw,bh,4); c.fill(); c.stroke();
+  c.fillStyle='#0c420c'; rr(c,bx+10,by+10,bw-20,bh-20,2); c.fill();
+  c.fillStyle='#b8ffb8'; c.textAlign='center';
+  const fs = Math.max(10, Math.min(14, W/50));
+  c.font=`bold ${fs}px "Courier New"`;
+  ['E = mc²','H₂O → H₂ + ½O₂','F = ma','PV = nRT','ΔG = ΔH − TΔS']
+    .forEach((t,i)=>c.fillText(t, bx+bw/2, by+bh*(0.18+i*0.19)));
+
+  // periodic table (only on wider screens)
+  if (W > 400) {
+    c.fillStyle='#222211'; c.strokeStyle='#887755'; c.lineWidth=1.5;
+    rr(c,10,25,120,130,3); c.fill(); c.stroke();
+    ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg'].forEach((el,i)=>{
+      const col=i%4, row=Math.floor(i/4);
+      const ex=16+col*27, ey=33+row*28;
+      c.fillStyle='#334433'; c.strokeStyle='#556655'; c.lineWidth=0.8;
+      rr(c,ex,ey,22,22,2); c.fill(); c.stroke();
+      c.fillStyle='#aaffaa'; c.font=`8px "Courier New"`; c.textAlign='center';
+      c.fillText(el,ex+11,ey+15);
+    });
+  }
+
+  // right poster
+  c.fillStyle='#111122'; c.strokeStyle='#334466'; c.lineWidth=1.5;
+  rr(c,W-115,25,100,110,3); c.fill(); c.stroke();
+  c.fillStyle='#8899ff'; c.font=`10px "Courier New"`; c.textAlign='center';
+  c.fillText('🔬 SCIENCE',W-65,72); c.fillText('IS COOL',W-65,90);
+
+  // window
+  c.fillStyle='#88bbdd'; c.strokeStyle='#aaa'; c.lineWidth=2;
+  rr(c,W-115,H*0.46,100,65,2); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(W-65,H*0.46); c.lineTo(W-65,H*0.46+65);
+  c.strokeStyle='#aaa'; c.lineWidth=1.5; c.stroke();
+  c.beginPath(); c.moveTo(W-115,H*0.46+32); c.lineTo(W-15,H*0.46+32); c.stroke();
+}
+
+function drawDesk(c) {
+  const dy = H*0.77;
+  c.fillStyle='#5c3d1e'; c.fillRect(30,dy,W-60,26);
+  c.fillStyle='#3b2a1a'; c.fillRect(30,dy+26,W-60,H-dy-26);
+  // beaker
+  c.fillStyle='#66ccee'; c.strokeStyle='#3399bb'; c.lineWidth=1.5;
+  rr(c,60,dy-30,22,32,2); c.fill(); c.stroke();
+  c.beginPath(); c.ellipse(71,dy-30,14,7,0,0,Math.PI*2);
+  c.fillStyle='#44aacc'; c.fill(); c.stroke();
+  // books
+  [['#8B0000',0],['#006400',1],['#00008B',2]].forEach(([col,i])=>{
+    c.fillStyle=col; c.strokeStyle='#111'; c.lineWidth=0.8;
+    rr(c,W*0.67+i*4,dy-30+i*(-7),44,30,1); c.fill(); c.stroke();
+  });
+  // apple
+  c.beginPath(); c.ellipse(W*0.82,dy-17,13,16,0,0,Math.PI*2);
+  c.fillStyle='#cc2200'; c.fill(); c.strokeStyle='#991100'; c.lineWidth=1; c.stroke();
+  c.beginPath(); c.moveTo(W*0.82,dy-33); c.lineTo(W*0.82+2,dy-40);
+  c.strokeStyle='#336600'; c.lineWidth=2; c.stroke();
+}
+
+function drawKeith(c,cx,cy,s) {
+  function ov(dx,dy,rx,ry,fill,stroke,lw=1.5){
+    c.beginPath(); c.ellipse(cx+dx*s,cy+dy*s,rx*s,ry*s,0,0,Math.PI*2);
+    c.fillStyle=fill; c.fill();
+    if(stroke){c.strokeStyle=stroke;c.lineWidth=lw*s;c.stroke();}
+  }
+  function ln(x1,y1,x2,y2,col,lw){
+    c.beginPath(); c.moveTo(cx+x1*s,cy+y1*s); c.lineTo(cx+x2*s,cy+y2*s);
+    c.strokeStyle=col; c.lineWidth=lw*s; c.lineCap='round'; c.stroke();
+  }
+  // arms
+  ln(-28,60,-56,106,'#4a7abf',13);
+  ln( 28,60, 56,106,'#4a7abf',13);
+  // body
+  ov(0,86,38,42,'#4a7abf','#2a4a7f',2);
+  // neck
+  c.fillStyle='#c68642'; c.fillRect(cx-11*s,cy+27*s,22*s,25*s);
+  // head
+  ov(0,-22,52,60,'#c68642','#a0622a',2);
+  // wrinkles
+  [-44,-37,-30].forEach(yl=>ln(-17,yl,17,yl,'#a0622a',1));
+  // eyebrows
+  ln(-37,-22,-13,-26,'#1a0a00',3); ln(13,-26,37,-22,'#1a0a00',3);
+  // ears
+  ov(-55,-8,8,10,'#c68642','#a0622a',1); ov(55,-8,8,10,'#c68642','#a0622a',1);
+  // glasses
+  c.globalAlpha=0.5;
+  ov(-24,-9,15,10,'#aabbcc','#666',2); ov(24,-9,15,10,'#aabbcc','#666',2);
+  c.globalAlpha=1;
+  ov(-24,-9,15,10,'transparent','#666',2); ov(24,-9,15,10,'transparent','#666',2);
+  ln(-9,-9,9,-9,'#666',2); ln(-39,-9,-55,-13,'#666',2); ln(39,-9,55,-13,'#666',2);
+  // eyes
+  ov(-24,-9,5,5,'#1a1a1a'); ov(24,-9,5,5,'#1a1a1a');
+  ov(-27,-12,2.5,2.5,'white'); ov(21,-12,2.5,2.5,'white');
+  // nose
+  ov(0,10,5,7,'#a0622a');
+  // mustache
+  c.beginPath(); c.ellipse(cx,cy+20*s,20*s,9*s,0,Math.PI,Math.PI*2);
+  c.closePath(); c.fillStyle='#1a0a00'; c.fill();
+  // chin beard
+  ov(0,36,18,15,'#1a0a00');
+  // smile
+  c.beginPath(); c.ellipse(cx,cy+29*s,9*s,6*s,0,Math.PI,Math.PI*2);
+  c.closePath(); c.fillStyle='#cc9966'; c.fill();
+  // hands
+  ov(-59,110,12,8,'#c68642','#a0622a',1); ov(59,110,12,8,'#c68642','#a0622a',1);
+}
+
+function drawThinking(c,cx,cy,s) {
+  const txt='thinking'+'.'.repeat(Math.floor(dots)%4);
+  const bx=cx+65*s, by=cy-100*s;
+  c.font=`bold 13px "Courier New"`;
+  [...txt].forEach((ch,i)=>{
+    const bob=Math.sin(Date.now()/250+i*0.5)*5;
+    c.fillStyle='#f39c12'; c.textAlign='left';
+    c.fillText(ch,bx+i*11,by+bob);
+  });
+}
+
+function drawBubble(c,cx,cy,s) {
+  const bx=cx+60*s, by=cy-115*s;
+  const maxW=Math.min(280,W-bx-10);
+  c.font=`11px "Courier New"`;
+  const words=bubble.split(' '), lines=[];
+  let line='';
+  words.forEach(w=>{
+    const test=line?line+' '+w:w;
+    if(c.measureText(test).width<maxW-24){line=test;}
+    else{if(line)lines.push(line);line=w;}
+  });
+  if(line)lines.push(line);
+  const lh=17, bh=lines.length*lh+22, bw=maxW;
+  let rx=bx,ry=by;
+  if(rx+bw>W-6){rx=W-bw-6;}
+  if(rx<6){rx=6;}
+  if(ry<6){ry=6;}
+  // bubble
+  c.fillStyle='#fffef0'; c.strokeStyle='#333'; c.lineWidth=2;
+  rr(c,rx,ry,bw,bh,10); c.fill(); c.stroke();
+  // tail
+  const tx=Math.min(rx+44,rx+bw-22);
+  c.beginPath(); c.moveTo(tx,ry+bh); c.lineTo(tx-9,ry+bh+18); c.lineTo(tx+16,ry+bh);
+  c.closePath(); c.fillStyle='#fffef0'; c.fill();
+  c.beginPath(); c.moveTo(tx-9,ry+bh+18); c.lineTo(tx+16,ry+bh);
+  c.strokeStyle='#333'; c.lineWidth=2; c.stroke();
+  c.beginPath(); c.moveTo(tx-9,ry+bh+1); c.lineTo(tx+17,ry+bh+1);
+  c.strokeStyle='#fffef0'; c.lineWidth=3; c.stroke();
+  // text
+  c.fillStyle='#111'; c.textAlign='left'; c.font=`11px "Courier New"`;
+  lines.forEach((ln,i)=>c.fillText(ln,rx+12,ry+16+i*lh));
+}
+</script>
+</body>
+</html>
