@@ -26,13 +26,50 @@
   #status{font-size:10px;color:#6688aa;margin-top:5px;min-height:13px;text-align:center}
   #status.err{color:#e74c3c}
   #status.ok{color:#2ecc71}
+
+  /* ── LOADING SCREEN ── */
+  #loader{
+    position:fixed;inset:0;background:#0d1b2a;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:999;transition:opacity 0.8s ease;
+  }
+  #loader.fade-out{opacity:0;pointer-events:none}
+  #loader-keith{
+    font-family:'Courier New',monospace;font-size:64px;font-weight:bold;
+    color:#f39c12;letter-spacing:6px;
+    opacity:0;transform:translateY(20px);
+    transition:opacity 0.7s ease, transform 0.7s ease;
+  }
+  #loader-keith.show{opacity:1;transform:translateY(0)}
+  #loader-sub{
+    font-family:'Courier New',monospace;font-size:22px;
+    color:#2ecc71;letter-spacing:3px;margin-top:14px;
+    opacity:0;transform:translateY(10px);
+    transition:opacity 0.7s ease 0.5s, transform 0.7s ease 0.5s;
+  }
+  #loader-sub.show{opacity:1;transform:translateY(0)}
+  #loader-bar{
+    margin-top:40px;width:160px;height:3px;background:#1e3050;border-radius:2px;overflow:hidden;
+  }
+  #loader-fill{
+    height:100%;width:0%;background:#f39c12;border-radius:2px;
+    transition:width 2.8s cubic-bezier(.4,0,.2,1);
+  }
 </style>
 </head>
 <body>
+
+<!-- LOADING SCREEN -->
+<div id="loader">
+  <div id="loader-keith">KEITH</div>
+  <div id="loader-sub">Oh word?</div>
+  <div id="loader-bar"><div id="loader-fill"></div></div>
+</div>
+
 <div id="scene-wrap"><canvas id="c"></canvas></div>
 <div id="bottom">
   <div id="title">⚗ KEITH GPT ⚗</div>
-  <div id="setup-banner" id="banner">
+  <div id="setup-banner">
     🔑 Get a <strong>free</strong> key at <a href="https://console.groq.com" target="_blank">console.groq.com</a> — no credit card needed. Paste it below:
     <input type="password" id="key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
     <button id="save-key-btn" onclick="saveKey()">Save Key ✓</button>
@@ -45,6 +82,26 @@
 </div>
 
 <script>
+// ── LOADING SCREEN ────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const keithEl = document.getElementById('loader-keith');
+  const subEl   = document.getElementById('loader-sub');
+  const fillEl  = document.getElementById('loader-fill');
+  const loader  = document.getElementById('loader');
+
+  // step 1: show "KEITH"
+  setTimeout(() => keithEl.classList.add('show'), 150);
+  // step 2: show "Oh word?"
+  setTimeout(() => subEl.classList.add('show'), 700);
+  // step 3: animate progress bar
+  setTimeout(() => fillEl.style.width = '100%', 300);
+  // step 4: fade out loader
+  setTimeout(() => {
+    loader.classList.add('fade-out');
+    setTimeout(() => loader.style.display = 'none', 850);
+  }, 3200);
+});
+
 // ── KEY MANAGEMENT ────────────────────────────────────────────────────────
 let apiKey = localStorage.getItem('keith_groq_key') || '';
 if (apiKey) document.getElementById('setup-banner').style.display = 'none';
@@ -58,13 +115,25 @@ function saveKey() {
   setStatus('Key saved — ask Keith something!','ok');
 }
 
-// ── GROQ CALL (fetch with explicit headers) ───────────────────────────────
-const SYSTEM = `You are Keith GPT — a cool, knowledgeable science teacher.
-- Start almost EVERY response with "My man," or "Oh word?" (alternate naturally).
-- Be warm, enthusiastic, science-flavored, and encouraging.
-- Keep answers to 2–4 sentences max.`;
+// ── ALTERNATING OPENER ────────────────────────────────────────────────────
+let useMyMan = true;
+
+function getOpener() {
+  const opener = useMyMan ? 'My man,' : 'Oh word?';
+  useMyMan = !useMyMan;
+  return opener;
+}
+
+// ── GROQ CALL ─────────────────────────────────────────────────────────────
+function buildSystem(opener) {
+  return `You are Keith GPT — a cool, knowledgeable science teacher.
+IMPORTANT: You MUST start your response with exactly "${opener}" — this is the first thing you say, no exceptions.
+After that opener, be warm, enthusiastic, science-flavored, and encouraging.
+Keep the entire answer to 2–4 sentences max.`;
+}
 
 async function callGroq(question) {
+  const opener = getOpener();
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -74,7 +143,7 @@ async function callGroq(question) {
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: SYSTEM },
+        { role: 'system', content: buildSystem(opener) },
         { role: 'user',   content: question }
       ],
       max_tokens: 200,
@@ -87,7 +156,12 @@ async function callGroq(question) {
     throw new Error('Groq ' + res.status + ': ' + msg);
   }
   const j = await res.json();
-  return j.choices[0].message.content.trim();
+  let text = j.choices[0].message.content.trim();
+  // Guarantee opener is present even if model ignores instruction
+  if (!text.startsWith('My man') && !text.startsWith('Oh word')) {
+    text = opener + ' ' + text;
+  }
+  return text;
 }
 
 // ── UI STATE ──────────────────────────────────────────────────────────────
@@ -112,10 +186,9 @@ async function ask() {
     setStatus('✓ Keith has spoken!','ok');
   } catch(e) {
     const msg = e.message || String(e);
-    // Common error hints
     let hint = msg;
     if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-      hint = 'Network blocked — try on a different WiFi or hotspot. (CORS/firewall)';
+      hint = 'Network blocked — try on a different WiFi or hotspot.';
     } else if (msg.includes('401')) {
       hint = 'Invalid API key — check console.groq.com and re-paste it.';
     } else if (msg.includes('429')) {
@@ -180,8 +253,6 @@ function drawBg(c) {
   const wallH = H*0.62;
   c.fillStyle='#1a2a1a'; c.fillRect(0,0,W,wallH);
   c.fillStyle='#111108'; c.fillRect(0,wallH,W,H-wallH);
-
-  // chalkboard
   const bx=W*0.20, by=12, bw=W*0.60, bh=H*0.44;
   c.fillStyle='#0a3a0a'; c.strokeStyle='#2a5a2a'; c.lineWidth=5;
   rr(c,bx,by,bw,bh,4); c.fill(); c.stroke();
@@ -191,8 +262,6 @@ function drawBg(c) {
   c.font=`bold ${fs}px "Courier New"`;
   ['E = mc²','H₂O → H₂ + ½O₂','F = ma','PV = nRT','ΔG = ΔH − TΔS']
     .forEach((t,i)=>c.fillText(t, bx+bw/2, by+bh*(0.18+i*0.19)));
-
-  // periodic table (only on wider screens)
   if (W > 400) {
     c.fillStyle='#222211'; c.strokeStyle='#887755'; c.lineWidth=1.5;
     rr(c,10,25,120,130,3); c.fill(); c.stroke();
@@ -205,14 +274,10 @@ function drawBg(c) {
       c.fillText(el,ex+11,ey+15);
     });
   }
-
-  // right poster
   c.fillStyle='#111122'; c.strokeStyle='#334466'; c.lineWidth=1.5;
   rr(c,W-115,25,100,110,3); c.fill(); c.stroke();
   c.fillStyle='#8899ff'; c.font=`10px "Courier New"`; c.textAlign='center';
   c.fillText('🔬 SCIENCE',W-65,72); c.fillText('IS COOL',W-65,90);
-
-  // window
   c.fillStyle='#88bbdd'; c.strokeStyle='#aaa'; c.lineWidth=2;
   rr(c,W-115,H*0.46,100,65,2); c.fill(); c.stroke();
   c.beginPath(); c.moveTo(W-65,H*0.46); c.lineTo(W-65,H*0.46+65);
@@ -224,17 +289,14 @@ function drawDesk(c) {
   const dy = H*0.77;
   c.fillStyle='#5c3d1e'; c.fillRect(30,dy,W-60,26);
   c.fillStyle='#3b2a1a'; c.fillRect(30,dy+26,W-60,H-dy-26);
-  // beaker
   c.fillStyle='#66ccee'; c.strokeStyle='#3399bb'; c.lineWidth=1.5;
   rr(c,60,dy-30,22,32,2); c.fill(); c.stroke();
   c.beginPath(); c.ellipse(71,dy-30,14,7,0,0,Math.PI*2);
   c.fillStyle='#44aacc'; c.fill(); c.stroke();
-  // books
   [['#8B0000',0],['#006400',1],['#00008B',2]].forEach(([col,i])=>{
     c.fillStyle=col; c.strokeStyle='#111'; c.lineWidth=0.8;
     rr(c,W*0.67+i*4,dy-30+i*(-7),44,30,1); c.fill(); c.stroke();
   });
-  // apple
   c.beginPath(); c.ellipse(W*0.82,dy-17,13,16,0,0,Math.PI*2);
   c.fillStyle='#cc2200'; c.fill(); c.strokeStyle='#991100'; c.lineWidth=1; c.stroke();
   c.beginPath(); c.moveTo(W*0.82,dy-33); c.lineTo(W*0.82+2,dy-40);
@@ -251,41 +313,27 @@ function drawKeith(c,cx,cy,s) {
     c.beginPath(); c.moveTo(cx+x1*s,cy+y1*s); c.lineTo(cx+x2*s,cy+y2*s);
     c.strokeStyle=col; c.lineWidth=lw*s; c.lineCap='round'; c.stroke();
   }
-  // arms
   ln(-28,60,-56,106,'#4a7abf',13);
   ln( 28,60, 56,106,'#4a7abf',13);
-  // body
   ov(0,86,38,42,'#4a7abf','#2a4a7f',2);
-  // neck
   c.fillStyle='#c68642'; c.fillRect(cx-11*s,cy+27*s,22*s,25*s);
-  // head
   ov(0,-22,52,60,'#c68642','#a0622a',2);
-  // wrinkles
   [-44,-37,-30].forEach(yl=>ln(-17,yl,17,yl,'#a0622a',1));
-  // eyebrows
   ln(-37,-22,-13,-26,'#1a0a00',3); ln(13,-26,37,-22,'#1a0a00',3);
-  // ears
   ov(-55,-8,8,10,'#c68642','#a0622a',1); ov(55,-8,8,10,'#c68642','#a0622a',1);
-  // glasses
   c.globalAlpha=0.5;
   ov(-24,-9,15,10,'#aabbcc','#666',2); ov(24,-9,15,10,'#aabbcc','#666',2);
   c.globalAlpha=1;
   ov(-24,-9,15,10,'transparent','#666',2); ov(24,-9,15,10,'transparent','#666',2);
   ln(-9,-9,9,-9,'#666',2); ln(-39,-9,-55,-13,'#666',2); ln(39,-9,55,-13,'#666',2);
-  // eyes
   ov(-24,-9,5,5,'#1a1a1a'); ov(24,-9,5,5,'#1a1a1a');
   ov(-27,-12,2.5,2.5,'white'); ov(21,-12,2.5,2.5,'white');
-  // nose
   ov(0,10,5,7,'#a0622a');
-  // mustache
   c.beginPath(); c.ellipse(cx,cy+20*s,20*s,9*s,0,Math.PI,Math.PI*2);
   c.closePath(); c.fillStyle='#1a0a00'; c.fill();
-  // chin beard
   ov(0,36,18,15,'#1a0a00');
-  // smile
   c.beginPath(); c.ellipse(cx,cy+29*s,9*s,6*s,0,Math.PI,Math.PI*2);
   c.closePath(); c.fillStyle='#cc9966'; c.fill();
-  // hands
   ov(-59,110,12,8,'#c68642','#a0622a',1); ov(59,110,12,8,'#c68642','#a0622a',1);
 }
 
@@ -317,10 +365,8 @@ function drawBubble(c,cx,cy,s) {
   if(rx+bw>W-6){rx=W-bw-6;}
   if(rx<6){rx=6;}
   if(ry<6){ry=6;}
-  // bubble
   c.fillStyle='#fffef0'; c.strokeStyle='#333'; c.lineWidth=2;
   rr(c,rx,ry,bw,bh,10); c.fill(); c.stroke();
-  // tail
   const tx=Math.min(rx+44,rx+bw-22);
   c.beginPath(); c.moveTo(tx,ry+bh); c.lineTo(tx-9,ry+bh+18); c.lineTo(tx+16,ry+bh);
   c.closePath(); c.fillStyle='#fffef0'; c.fill();
@@ -328,7 +374,6 @@ function drawBubble(c,cx,cy,s) {
   c.strokeStyle='#333'; c.lineWidth=2; c.stroke();
   c.beginPath(); c.moveTo(tx-9,ry+bh+1); c.lineTo(tx+17,ry+bh+1);
   c.strokeStyle='#fffef0'; c.lineWidth=3; c.stroke();
-  // text
   c.fillStyle='#111'; c.textAlign='left'; c.font=`11px "Courier New"`;
   lines.forEach((ln,i)=>c.fillText(ln,rx+12,ry+16+i*lh));
 }
