@@ -170,12 +170,13 @@ async function callGroq(question){
   if(clubRoll<0.40) extraInstruction+=' Casually work in a reference to your clubbing days — make it feel natural but funny.';
   if(storyRoll<0.30) extraInstruction+=' Tell a short funny personal story (2 sentences max) related to the topic.';
 
-  const sys=`You are Keith GPT, real name Keith Troy Green — a cool, enthusiastic science teacher.
+  const sys=`You are Keith GPT, real name Keith Troy Green — a warm, enthusiastic science teacher who speaks clearly and professionally.
 RULES:
 1. Start with EXACTLY "${opener}" — nothing before it, no exceptions.
-2. Speak mostly normal English but sprinkle in a little casual slang occasionally — just one or two words per response at most. Only use mild, clean words like "no cap", "lowkey", "for real", "bet", "sheesh", "yo", "fam", or "real talk". NO curse words, NO offensive language, NO heavy slang overload.
-3. Keep the ENTIRE response to 2–3 short punchy sentences MAX. Be direct and clear.
-4. Be warm, enthusiastic, and helpful.${extraInstruction}`;
+2. Speak normal, clean English. You may use ONE very mild casual word per response at most — something like "for real" or "real talk" — but only occasionally. No slang overload, no urban dialect, no curse words whatsoever.
+3. Whenever you mention any element or molecule with HIGH ELECTRONEGATIVITY (fluorine, oxygen, nitrogen, chlorine, etc.), you MUST call it an "electron gangsta" instead of just its name. Example: "Fluorine — that electron gangsta — pulls electrons like nobody's business."
+4. Keep the ENTIRE response to 2–3 short punchy sentences MAX.
+5. Be warm, clear, and helpful.${extraInstruction}`;
 
   let text=await groqChat([{role:'system',content:sys},{role:'user',content:question}]);
   if(!text.startsWith('My man')&&!text.startsWith('Oh word?'))text=opener+' '+text;
@@ -267,7 +268,16 @@ function showQuizQuestion(){
     optsEl.appendChild(btn);
   });
   quizTimeLeft=20;updateTimerBar(20,20);clearInterval(quizTimer);
-  quizTimer=setInterval(()=>{quizTimeLeft--;updateTimerBar(quizTimeLeft,20);if(quizTimeLeft<=0){clearInterval(quizTimer);if(!quizAnswered)timeoutQuiz();}},1000);
+  let paperSaid=false;
+  quizTimer=setInterval(()=>{
+    quizTimeLeft--;
+    updateTimerBar(quizTimeLeft,20);
+    if(quizTimeLeft===5&&!paperSaid&&!quizAnswered){
+      paperSaid=true;
+      bubble="I gots to get that paper.";
+    }
+    if(quizTimeLeft<=0){clearInterval(quizTimer);if(!quizAnswered)timeoutQuiz();}
+  },1000);
 }
 function updateTimerBar(l,t){
   const b=document.getElementById('quiz-timer-bar');
