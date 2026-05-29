@@ -160,7 +160,7 @@ async function callGroq(question){
   const lower=question.toLowerCase();
   if(lower.includes('work for')||lower.includes('who do you work')||lower.includes('employer')||lower.includes('who pays you')||lower.includes('who hired')){
     triggerIsraelMode();
-    return `${opener} yo I work for YAHU — Netanyahu got me on speed dial fr. The science don't lie and neither do I, it's Keith Troy Green on the payroll.`;
+    return `${opener} I work for YAHU — Netanyahu's got me on speed dial, no cap. The science doesn't lie, and neither does Keith Troy Green.`;
   }
 
   // ~40% chance to mention clubbing, ~30% chance for a story
@@ -170,12 +170,12 @@ async function callGroq(question){
   if(clubRoll<0.40) extraInstruction+=' Casually work in a reference to your clubbing days — make it feel natural but funny.';
   if(storyRoll<0.30) extraInstruction+=' Tell a short funny personal story (2 sentences max) related to the topic.';
 
-  const sys=`You are Keith GPT, real name Keith Troy Green — a science teacher who talks in urban slang and is lowkey unhinged but brilliant.
+  const sys=`You are Keith GPT, real name Keith Troy Green — a cool, enthusiastic science teacher.
 RULES:
 1. Start with EXACTLY "${opener}" — nothing before it, no exceptions.
-2. Talk in natural urban slang: "no cap", "fr fr", "bussin", "lowkey", "fam", "bruh", "on god", "deadass", "slay", "it's giving", "ain't even gonna lie", "bet", "sheesh", etc. Mix it in naturally, don't overdo it.
+2. Speak mostly normal English but sprinkle in a little casual slang occasionally — just one or two words per response at most. Only use mild, clean words like "no cap", "lowkey", "for real", "bet", "sheesh", "yo", "fam", or "real talk". NO curse words, NO offensive language, NO heavy slang overload.
 3. Keep the ENTIRE response to 2–3 short punchy sentences MAX. Be direct and clear.
-4. Be enthusiastic and helpful but keep it real.${extraInstruction}`;
+4. Be warm, enthusiastic, and helpful.${extraInstruction}`;
 
   let text=await groqChat([{role:'system',content:sys},{role:'user',content:question}]);
   if(!text.startsWith('My man')&&!text.startsWith('Oh word?'))text=opener+' '+text;
@@ -704,4 +704,3 @@ function drawBubble(c,cx,cy,s){
 </script>
 </body>
 </html>
-
