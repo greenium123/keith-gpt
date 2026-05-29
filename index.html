@@ -27,43 +27,59 @@
   #status.err{color:#e74c3c}
   #status.ok{color:#2ecc71}
 
-  /* ── LOADING SCREEN ── */
-  #loader{
-    position:fixed;inset:0;background:#0d1b2a;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    z-index:999;transition:opacity 0.8s ease;
-  }
+  /* LOADING SCREEN */
+  #loader{position:fixed;inset:0;background:#0d1b2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.8s ease}
   #loader.fade-out{opacity:0;pointer-events:none}
-  #loader-keith{
-    font-family:'Courier New',monospace;font-size:64px;font-weight:bold;
-    color:#f39c12;letter-spacing:6px;
-    opacity:0;transform:translateY(20px);
-    transition:opacity 0.7s ease, transform 0.7s ease;
-  }
+  #loader-keith{font-size:64px;font-weight:bold;color:#f39c12;letter-spacing:6px;opacity:0;transform:translateY(20px);transition:opacity 0.7s ease,transform 0.7s ease}
   #loader-keith.show{opacity:1;transform:translateY(0)}
-  #loader-sub{
-    font-family:'Courier New',monospace;font-size:22px;
-    color:#2ecc71;letter-spacing:3px;margin-top:14px;
-    opacity:0;transform:translateY(10px);
-    transition:opacity 0.7s ease 0.5s, transform 0.7s ease 0.5s;
-  }
+  #loader-sub{font-size:22px;color:#2ecc71;letter-spacing:3px;margin-top:14px;opacity:0;transform:translateY(10px);transition:opacity 0.7s ease 0.5s,transform 0.7s ease 0.5s}
   #loader-sub.show{opacity:1;transform:translateY(0)}
-  #loader-bar{
-    margin-top:40px;width:160px;height:3px;background:#1e3050;border-radius:2px;overflow:hidden;
+  #loader-bar{margin-top:40px;width:160px;height:3px;background:#1e3050;border-radius:2px;overflow:hidden}
+  #loader-fill{height:100%;width:0%;background:#f39c12;border-radius:2px;transition:width 2.8s cubic-bezier(.4,0,.2,1)}
+
+  /* QUIZ OVERLAY */
+  #quiz-overlay{
+    display:none;position:fixed;inset:0;background:rgba(5,0,0,0.93);
+    z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:20px;
   }
-  #loader-fill{
-    height:100%;width:0%;background:#f39c12;border-radius:2px;
-    transition:width 2.8s cubic-bezier(.4,0,.2,1);
-  }
+  #quiz-overlay.active{display:flex}
+  #quiz-title{color:#ff2222;font-size:20px;font-weight:bold;letter-spacing:2px;margin-bottom:6px;text-align:center}
+  #quiz-subtitle{color:#ff8888;font-size:11px;margin-bottom:18px;text-align:center}
+  #quiz-q{color:#fff;font-size:15px;line-height:1.6;margin-bottom:16px;text-align:center;max-width:480px}
+  #quiz-timer-wrap{width:100%;max-width:400px;height:6px;background:#330000;border-radius:3px;margin-bottom:18px;overflow:hidden}
+  #quiz-timer-bar{height:100%;width:100%;background:#ff2222;border-radius:3px;transition:width linear}
+  #quiz-options{display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px}
+  .quiz-opt{background:#1a0000;border:1.5px solid #550000;color:#ffcccc;border-radius:8px;padding:12px 16px;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;transition:all .15s;text-align:left}
+  .quiz-opt:hover{background:#330000;border-color:#ff2222;color:#fff}
+  .quiz-opt.correct{background:#003300;border-color:#00cc44;color:#aaffaa}
+  .quiz-opt.wrong{background:#330000;border-color:#ff2222;color:#ff8888;animation:shake .3s}
+  #quiz-feedback{margin-top:14px;font-size:13px;min-height:20px;text-align:center}
+  #quiz-score{color:#f39c12;font-size:12px;margin-top:8px;text-align:center}
+  #quiz-next-btn{margin-top:14px;background:#cc0000;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;display:none}
+  #quiz-next-btn:hover{background:#ff0000}
+
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  @keyframes flicker{0%,100%{opacity:1}50%{opacity:0.6}}
 </style>
 </head>
 <body>
 
-<!-- LOADING SCREEN -->
 <div id="loader">
   <div id="loader-keith">KEITH</div>
   <div id="loader-sub">Oh word?</div>
   <div id="loader-bar"><div id="loader-fill"></div></div>
+</div>
+
+<!-- QUIZ OVERLAY -->
+<div id="quiz-overlay">
+  <div id="quiz-title">😈 DEVIL KEITH QUIZ TIME 😈</div>
+  <div id="quiz-subtitle">Answer correctly or face Keith's wrath...</div>
+  <div id="quiz-q"></div>
+  <div id="quiz-timer-wrap"><div id="quiz-timer-bar"></div></div>
+  <div id="quiz-options"></div>
+  <div id="quiz-feedback"></div>
+  <div id="quiz-score"></div>
+  <button id="quiz-next-btn" onclick="quizNext()">NEXT →</button>
 </div>
 
 <div id="scene-wrap"><canvas id="c"></canvas></div>
@@ -82,27 +98,22 @@
 </div>
 
 <script>
-// ── LOADING SCREEN ────────────────────────────────────────────────────────
+// ── LOADER ────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  const keithEl = document.getElementById('loader-keith');
-  const subEl   = document.getElementById('loader-sub');
-  const fillEl  = document.getElementById('loader-fill');
-  const loader  = document.getElementById('loader');
-
-  // step 1: show "KEITH"
-  setTimeout(() => keithEl.classList.add('show'), 150);
-  // step 2: show "Oh word?"
-  setTimeout(() => subEl.classList.add('show'), 700);
-  // step 3: animate progress bar
-  setTimeout(() => fillEl.style.width = '100%', 300);
-  // step 4: fade out loader
+  const kEl = document.getElementById('loader-keith');
+  const sEl = document.getElementById('loader-sub');
+  const fEl = document.getElementById('loader-fill');
+  const ld  = document.getElementById('loader');
+  setTimeout(() => kEl.classList.add('show'), 150);
+  setTimeout(() => sEl.classList.add('show'), 700);
+  setTimeout(() => fEl.style.width = '100%', 300);
   setTimeout(() => {
-    loader.classList.add('fade-out');
-    setTimeout(() => loader.style.display = 'none', 850);
+    ld.classList.add('fade-out');
+    setTimeout(() => ld.style.display = 'none', 850);
   }, 3200);
 });
 
-// ── KEY MANAGEMENT ────────────────────────────────────────────────────────
+// ── KEY ───────────────────────────────────────────────────────────────────
 let apiKey = localStorage.getItem('keith_groq_key') || '';
 if (apiKey) document.getElementById('setup-banner').style.display = 'none';
 
@@ -115,62 +126,56 @@ function saveKey() {
   setStatus('Key saved — ask Keith something!','ok');
 }
 
-// ── ALTERNATING OPENER ────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────────
+let bubble = '', thinking = false, dots = 0;
+let kScale = 1.0, targetScale = 1.0;
 let useMyMan = true;
+let isDevil = false, devilIntensity = 0; // 0=normal,1=full devil
+let isAngry = false, angryTimer = 0;
+let shake = 0;
 
+// Q&A history for quiz
+let qHistory = []; // [{q, a}]
+let questionCount = 0;
+let nextQuizAt = randQuizAt();
+function randQuizAt() { return questionCount + Math.floor(Math.random()*6)+5; }
+
+// ── ALTERNATING OPENER ────────────────────────────────────────────────────
 function getOpener() {
-  const opener = useMyMan ? 'My man,' : 'Oh word?';
+  const o = useMyMan ? 'My man,' : 'Oh word?';
   useMyMan = !useMyMan;
-  return opener;
+  return o;
 }
 
 // ── GROQ CALL ─────────────────────────────────────────────────────────────
-function buildSystem(opener) {
-  return `You are Keith GPT — a cool, knowledgeable science teacher.
-IMPORTANT: You MUST start your response with exactly "${opener}" — this is the first thing you say, no exceptions.
-After that opener, be warm, enthusiastic, science-flavored, and encouraging.
-Keep the entire answer to 2–4 sentences max.`;
+async function groqChat(messages, maxTokens=220) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    body: JSON.stringify({model:'llama-3.3-70b-versatile', messages, max_tokens:maxTokens, temperature:0.85})
+  });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j=await res.json(); msg=j?.error?.message||msg; } catch(_){}
+    throw new Error('Groq '+res.status+': '+msg);
+  }
+  const j = await res.json();
+  return j.choices[0].message.content.trim();
 }
 
 async function callGroq(question) {
   const opener = getOpener();
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: buildSystem(opener) },
-        { role: 'user',   content: question }
-      ],
-      max_tokens: 200,
-      temperature: 0.85
-    })
-  });
-  if (!res.ok) {
-    let msg = res.statusText;
-    try { const j = await res.json(); msg = j?.error?.message || msg; } catch(_){}
-    throw new Error('Groq ' + res.status + ': ' + msg);
-  }
-  const j = await res.json();
-  let text = j.choices[0].message.content.trim();
-  // Guarantee opener is present even if model ignores instruction
-  if (!text.startsWith('My man') && !text.startsWith('Oh word')) {
-    text = opener + ' ' + text;
-  }
+  const sys = `You are Keith GPT — a cool, knowledgeable science teacher.
+IMPORTANT: Start your response with exactly "${opener}" — no exceptions.
+Be warm, enthusiastic, science-flavored, encouraging.
+Keep the answer to 2–3 sentences max.`;
+  let text = await groqChat([{role:'system',content:sys},{role:'user',content:question}]);
+  if (!text.startsWith('My man') && !text.startsWith('Oh word')) text = opener+' '+text;
   return text;
 }
 
-// ── UI STATE ──────────────────────────────────────────────────────────────
-let bubble = '', thinking = false, dots = 0;
-let kScale = 1.0, targetScale = 1.0;
-
-document.getElementById('question').addEventListener('keydown', e => {
-  if (e.key === 'Enter') ask();
-});
+// ── MAIN ASK ──────────────────────────────────────────────────────────────
+document.getElementById('question').addEventListener('keydown', e => { if(e.key==='Enter') ask(); });
 
 async function ask() {
   const q = document.getElementById('question').value.trim();
@@ -183,64 +188,250 @@ async function ask() {
   try {
     const answer = await callGroq(q);
     bubble = answer;
+    qHistory.push({q, a: answer});
+    questionCount++;
     setStatus('✓ Keith has spoken!','ok');
-  } catch(e) {
-    const msg = e.message || String(e);
-    let hint = msg;
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-      hint = 'Network blocked — try on a different WiFi or hotspot.';
-    } else if (msg.includes('401')) {
-      hint = 'Invalid API key — check console.groq.com and re-paste it.';
-    } else if (msg.includes('429')) {
-      hint = 'Rate limited — wait a moment and try again.';
+    // Check if quiz should trigger
+    if (questionCount >= nextQuizAt && qHistory.length >= 3) {
+      setTimeout(() => startDevilMode(), 10500);
     }
-    bubble = 'Oh word? ' + hint;
-    setStatus('❌ ' + hint, 'err');
+  } catch(e) {
+    const msg = e.message||String(e);
+    let hint = msg;
+    if (msg.includes('Failed to fetch')||msg.includes('NetworkError')) hint='Network blocked — try a hotspot.';
+    else if (msg.includes('401')) hint='Invalid API key — re-paste from console.groq.com.';
+    else if (msg.includes('429')) hint='Rate limited — wait a moment.';
+    bubble = 'Oh word? '+hint;
+    setStatus('❌ '+hint,'err');
   }
   thinking = false;
   document.getElementById('ask-btn').disabled = false;
   setTimeout(() => { targetScale = 1.0; }, 9000);
-  setTimeout(() => { bubble = ''; setStatus(''); }, 11500);
+  setTimeout(() => { bubble=''; setStatus(''); }, 11500);
 }
 
-function setStatus(msg, cls) {
-  const el = document.getElementById('status');
-  el.textContent = msg; el.className = cls || '';
+function setStatus(msg,cls) {
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className=cls||'';
+}
+
+// ── DEVIL MODE ────────────────────────────────────────────────────────────
+function startDevilMode() {
+  isDevil = true;
+  isAngry = false;
+  // Animate transition over ~2s then launch quiz
+  setTimeout(() => launchQuiz(), 2500);
+}
+
+function endDevilMode() {
+  isDevil = false;
+  devilIntensity = 0;
+  isAngry = false;
+  nextQuizAt = randQuizAt();
+}
+
+// ── QUIZ ──────────────────────────────────────────────────────────────────
+let quizQuestions = [];
+let quizIdx = 0;
+let quizScore = 0;
+let quizTimer = null;
+let quizTimeLeft = 20;
+let quizAnswered = false;
+
+async function launchQuiz() {
+  if (qHistory.length < 3) { endDevilMode(); return; }
+  // Pick up to 3 random questions from history
+  const pool = [...qHistory].sort(()=>Math.random()-0.5).slice(0,3);
+  quizQuestions = [];
+  setStatus('😈 Devil Keith is generating quiz…','err');
+
+  for (const item of pool) {
+    try {
+      const prompt = `Based on this Q&A:
+Q: "${item.q}"
+A: "${item.a}"
+
+Create a multiple-choice quiz question. Respond ONLY with valid JSON in this exact format (no extra text, no markdown):
+{"question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":0}
+Where "correct" is the 0-based index of the correct answer. Make the distractors plausible but wrong.`;
+      const raw = await groqChat([{role:'user',content:prompt}], 300);
+      const cleaned = raw.replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(cleaned);
+      quizQuestions.push(parsed);
+    } catch(e) { console.warn('Quiz parse error',e); }
+  }
+
+  if (quizQuestions.length === 0) { endDevilMode(); return; }
+
+  quizIdx = 0; quizScore = 0;
+  document.getElementById('quiz-overlay').classList.add('active');
+  showQuizQuestion();
+}
+
+function showQuizQuestion() {
+  quizAnswered = false;
+  const q = quizQuestions[quizIdx];
+  document.getElementById('quiz-q').textContent = q.question;
+  document.getElementById('quiz-feedback').textContent = '';
+  document.getElementById('quiz-score').textContent = `Question ${quizIdx+1} of ${quizQuestions.length}  |  Score: ${quizScore}`;
+  document.getElementById('quiz-next-btn').style.display = 'none';
+
+  const optsEl = document.getElementById('quiz-options');
+  optsEl.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.onclick = () => answerQuiz(i, btn);
+    optsEl.appendChild(btn);
+  });
+
+  // Timer
+  quizTimeLeft = 20;
+  updateTimerBar(20, 20);
+  clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    quizTimeLeft--;
+    updateTimerBar(quizTimeLeft, 20);
+    if (quizTimeLeft <= 0) {
+      clearInterval(quizTimer);
+      if (!quizAnswered) timeoutQuiz();
+    }
+  }, 1000);
+}
+
+function updateTimerBar(left, total) {
+  const bar = document.getElementById('quiz-timer-bar');
+  const pct = (left / total) * 100;
+  bar.style.width = pct + '%';
+  bar.style.background = left > 10 ? '#ff2222' : left > 5 ? '#ff6600' : '#ff0000';
+  bar.style.transition = 'width 1s linear';
+}
+
+function answerQuiz(idx, btn) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  clearInterval(quizTimer);
+  const q = quizQuestions[quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+
+  if (idx === q.correct) {
+    btn.classList.add('correct');
+    quizScore++;
+    isAngry = false;
+    document.getElementById('quiz-feedback').innerHTML = '<span style="color:#00cc44">✓ Correct! Keith nods approvingly.</span>';
+  } else {
+    btn.classList.add('wrong');
+    opts[q.correct].classList.add('correct');
+    triggerAngry();
+    document.getElementById('quiz-feedback').innerHTML = '<span style="color:#ff4444">✗ Wrong! Keith is NOT happy with you.</span>';
+  }
+  document.getElementById('quiz-score').textContent = `Question ${quizIdx+1} of ${quizQuestions.length}  |  Score: ${quizScore}`;
+  document.getElementById('quiz-next-btn').style.display = 'block';
+}
+
+function timeoutQuiz() {
+  quizAnswered = true;
+  const q = quizQuestions[quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts[q.correct].classList.add('correct');
+  triggerAngry();
+  document.getElementById('quiz-feedback').innerHTML = '<span style="color:#ff4444">⏰ Time\'s up! Keith is FURIOUS.</span>';
+  document.getElementById('quiz-score').textContent = `Question ${quizIdx+1} of ${quizQuestions.length}  |  Score: ${quizScore}`;
+  document.getElementById('quiz-next-btn').style.display = 'block';
+}
+
+function triggerAngry() {
+  isAngry = true;
+  angryTimer = 2.5;
+  shake = 8;
+}
+
+function quizNext() {
+  quizIdx++;
+  isAngry = false;
+  if (quizIdx >= quizQuestions.length) {
+    endQuiz();
+  } else {
+    showQuizQuestion();
+  }
+}
+
+function endQuiz() {
+  clearInterval(quizTimer);
+  document.getElementById('quiz-overlay').classList.remove('active');
+  const total = quizQuestions.length;
+  const pct = Math.round((quizScore/total)*100);
+  bubble = quizScore === total
+    ? `My man, ${pct}% — PERFECT SCORE! You actually paid attention!`
+    : quizScore >= total*0.6
+    ? `Oh word? ${quizScore}/${total} — not bad, but Keith expected more from you.`
+    : `My man, ${quizScore}/${total}... Keith is deeply disappointed. Study harder!`;
+  isAngry = quizScore < total*0.6;
+  if (isAngry) angryTimer = 4;
+  setTimeout(() => endDevilMode(), 3000);
+  setTimeout(() => { bubble=''; isAngry=false; }, 11000);
 }
 
 // ── CANVAS ────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-let W, H, dpr = window.devicePixelRatio || 1;
+let W, H, dpr = window.devicePixelRatio||1;
 
 function resize() {
   const wrap = document.getElementById('scene-wrap');
   W = wrap.clientWidth; H = wrap.clientHeight;
-  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.width  = W*dpr; canvas.height = H*dpr;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
 }
 window.addEventListener('resize', resize); resize();
 
-let bobT = 0, last = 0;
+let bobT=0, last=0;
 
 function loop(ts) {
-  const dt = Math.min((ts-last)/1000, 0.1); last = ts;
+  const dt = Math.min((ts-last)/1000,0.1); last=ts;
   bobT += dt*1.5;
-  kScale += (targetScale - kScale)*0.12;
+  kScale += (targetScale-kScale)*0.12;
   if (thinking) dots += dt*3;
+
+  // Devil transition
+  if (isDevil) devilIntensity = Math.min(1, devilIntensity + dt*0.8);
+  else         devilIntensity = Math.max(0, devilIntensity - dt*1.2);
+
+  // Angry timer
+  if (angryTimer > 0) { angryTimer -= dt; if(angryTimer<=0){isAngry=false;} }
+  if (shake > 0) shake *= 0.85;
+
   draw(); requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
 function draw() {
-  const c = ctx, p = dpr;
+  const c=ctx, p=dpr;
   c.setTransform(p,0,0,p,0,0);
   c.clearRect(0,0,W,H);
-  drawBg(c); drawDesk(c);
-  const cx = W/2, cy = H*0.50 + Math.sin(bobT)*2.5;
+
+  // Screen shake when angry
+  const sx = isAngry ? (Math.random()-0.5)*shake : 0;
+  const sy = isAngry ? (Math.random()-0.5)*shake*0.5 : 0;
+  c.translate(sx, sy);
+
+  // Red tint overlay when devil
+  drawBg(c);
+  drawDesk(c);
+  const cx=W/2, cy=H*0.50+Math.sin(bobT)*2.5;
   drawKeith(c,cx,cy,kScale);
   if (thinking) drawThinking(c,cx,cy,kScale);
   if (bubble)   drawBubble(c,cx,cy,kScale);
+
+  // Red vignette when devil
+  if (devilIntensity > 0) {
+    const grad = c.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
+    grad.addColorStop(0,'rgba(0,0,0,0)');
+    grad.addColorStop(1,`rgba(180,0,0,${devilIntensity*0.45})`);
+    c.fillStyle = grad;
+    c.fillRect(0,0,W,H);
+  }
 }
 
 function rr(c,x,y,w,h,r){
@@ -249,25 +440,34 @@ function rr(c,x,y,w,h,r){
   c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
 }
 
+function lerpColor(c1, c2, t) {
+  const r1=parseInt(c1.slice(1,3),16), g1=parseInt(c1.slice(3,5),16), b1=parseInt(c1.slice(5,7),16);
+  const r2=parseInt(c2.slice(1,3),16), g2=parseInt(c2.slice(3,5),16), b2=parseInt(c2.slice(5,7),16);
+  const r=Math.round(r1+(r2-r1)*t), g=Math.round(g1+(g2-g1)*t), b=Math.round(b1+(b2-b1)*t);
+  return `rgb(${r},${g},${b})`;
+}
+
 function drawBg(c) {
-  const wallH = H*0.62;
-  c.fillStyle='#1a2a1a'; c.fillRect(0,0,W,wallH);
+  const wallH=H*0.62;
+  const wallCol = devilIntensity>0 ? lerpColor('#1a2a1a','#2a0a0a',devilIntensity) : '#1a2a1a';
+  c.fillStyle=wallCol; c.fillRect(0,0,W,wallH);
   c.fillStyle='#111108'; c.fillRect(0,wallH,W,H-wallH);
-  const bx=W*0.20, by=12, bw=W*0.60, bh=H*0.44;
+
+  const bx=W*0.20,by=12,bw=W*0.60,bh=H*0.44;
   c.fillStyle='#0a3a0a'; c.strokeStyle='#2a5a2a'; c.lineWidth=5;
   rr(c,bx,by,bw,bh,4); c.fill(); c.stroke();
   c.fillStyle='#0c420c'; rr(c,bx+10,by+10,bw-20,bh-20,2); c.fill();
   c.fillStyle='#b8ffb8'; c.textAlign='center';
-  const fs = Math.max(10, Math.min(14, W/50));
+  const fs=Math.max(10,Math.min(14,W/50));
   c.font=`bold ${fs}px "Courier New"`;
   ['E = mc²','H₂O → H₂ + ½O₂','F = ma','PV = nRT','ΔG = ΔH − TΔS']
-    .forEach((t,i)=>c.fillText(t, bx+bw/2, by+bh*(0.18+i*0.19)));
-  if (W > 400) {
+    .forEach((t,i)=>c.fillText(t,bx+bw/2,by+bh*(0.18+i*0.19)));
+
+  if (W>400) {
     c.fillStyle='#222211'; c.strokeStyle='#887755'; c.lineWidth=1.5;
     rr(c,10,25,120,130,3); c.fill(); c.stroke();
     ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg'].forEach((el,i)=>{
-      const col=i%4, row=Math.floor(i/4);
-      const ex=16+col*27, ey=33+row*28;
+      const col=i%4,row=Math.floor(i/4),ex=16+col*27,ey=33+row*28;
       c.fillStyle='#334433'; c.strokeStyle='#556655'; c.lineWidth=0.8;
       rr(c,ex,ey,22,22,2); c.fill(); c.stroke();
       c.fillStyle='#aaffaa'; c.font=`8px "Courier New"`; c.textAlign='center';
@@ -286,7 +486,7 @@ function drawBg(c) {
 }
 
 function drawDesk(c) {
-  const dy = H*0.77;
+  const dy=H*0.77;
   c.fillStyle='#5c3d1e'; c.fillRect(30,dy,W-60,26);
   c.fillStyle='#3b2a1a'; c.fillRect(30,dy+26,W-60,H-dy-26);
   c.fillStyle='#66ccee'; c.strokeStyle='#3399bb'; c.lineWidth=1.5;
@@ -304,8 +504,14 @@ function drawDesk(c) {
 }
 
 function drawKeith(c,cx,cy,s) {
-  function ov(dx,dy,rx,ry,fill,stroke,lw=1.5){
-    c.beginPath(); c.ellipse(cx+dx*s,cy+dy*s,rx*s,ry*s,0,0,Math.PI*2);
+  const d = devilIntensity;
+  // Skin: normal #8B5E3C → devil dark #5a1a00
+  const SKIN   = lerpColor('#8B5E3C','#5a1a00', d);
+  const SKIN_D = lerpColor('#6b3f1a','#3a0800', d);
+  const SHIRT  = lerpColor('#4a7abf','#8b0000', d);
+
+  function ov(dx,dy2,rx,ry,fill,stroke,lw=1.5){
+    c.beginPath(); c.ellipse(cx+dx*s,cy+dy2*s,rx*s,ry*s,0,0,Math.PI*2);
     c.fillStyle=fill; c.fill();
     if(stroke){c.strokeStyle=stroke;c.lineWidth=lw*s;c.stroke();}
   }
@@ -313,69 +519,163 @@ function drawKeith(c,cx,cy,s) {
     c.beginPath(); c.moveTo(cx+x1*s,cy+y1*s); c.lineTo(cx+x2*s,cy+y2*s);
     c.strokeStyle=col; c.lineWidth=lw*s; c.lineCap='round'; c.stroke();
   }
-  ln(-28,60,-56,106,'#4a7abf',13);
-  ln( 28,60, 56,106,'#4a7abf',13);
-  ov(0,86,38,42,'#4a7abf','#2a4a7f',2);
-  c.fillStyle='#c68642'; c.fillRect(cx-11*s,cy+27*s,22*s,25*s);
-  ov(0,-22,52,60,'#c68642','#a0622a',2);
-  [-44,-37,-30].forEach(yl=>ln(-17,yl,17,yl,'#a0622a',1));
+
+  // arms
+  ln(-28,60,-56,106,SHIRT,13);
+  ln( 28,60, 56,106,SHIRT,13);
+  // body
+  ov(0,86,38,42,SHIRT,SKIN_D,2);
+  // neck
+  c.fillStyle=SKIN; c.fillRect(cx-11*s,cy+27*s,22*s,25*s);
+  // head
+  ov(0,-22,52,60,SKIN,SKIN_D,2);
+  // wrinkles
+  [-44,-37,-30].forEach(yl=>ln(-17,yl,17,yl,SKIN_D,1));
+  // eyebrows
   ln(-37,-22,-13,-26,'#1a0a00',3); ln(13,-26,37,-22,'#1a0a00',3);
-  ov(-55,-8,8,10,'#c68642','#a0622a',1); ov(55,-8,8,10,'#c68642','#a0622a',1);
+  // ears
+  ov(-55,-8,8,10,SKIN,SKIN_D,1); ov(55,-8,8,10,SKIN,SKIN_D,1);
+  // glasses
   c.globalAlpha=0.5;
   ov(-24,-9,15,10,'#aabbcc','#666',2); ov(24,-9,15,10,'#aabbcc','#666',2);
   c.globalAlpha=1;
   ov(-24,-9,15,10,'transparent','#666',2); ov(24,-9,15,10,'transparent','#666',2);
   ln(-9,-9,9,-9,'#666',2); ln(-39,-9,-55,-13,'#666',2); ln(39,-9,55,-13,'#666',2);
-  ov(-24,-9,5,5,'#1a1a1a'); ov(24,-9,5,5,'#1a1a1a');
+
+  // Eyes — glow red when devil
+  if (d > 0) {
+    // red glow
+    c.save();
+    c.shadowColor='#ff0000'; c.shadowBlur=14*s*d;
+    ov(-24,-9,5,5,`rgba(255,${Math.round(255*(1-d))},0,1)`);
+    ov( 24,-9,5,5,`rgba(255,${Math.round(255*(1-d))},0,1)`);
+    c.restore();
+  } else {
+    ov(-24,-9,5,5,'#1a1a1a'); ov(24,-9,5,5,'#1a1a1a');
+  }
+  // eye shine
   ov(-27,-12,2.5,2.5,'white'); ov(21,-12,2.5,2.5,'white');
-  ov(0,10,5,7,'#a0622a');
+
+  // nose
+  ov(0,10,5,7,SKIN_D);
+
+  // mustache
   c.beginPath(); c.ellipse(cx,cy+20*s,20*s,9*s,0,Math.PI,Math.PI*2);
   c.closePath(); c.fillStyle='#1a0a00'; c.fill();
-  ov(0,36,18,15,'#1a0a00');
-  c.beginPath(); c.ellipse(cx,cy+29*s,9*s,6*s,0,Math.PI,Math.PI*2);
-  c.closePath(); c.fillStyle='#cc9966'; c.fill();
-  ov(-59,110,12,8,'#c68642','#a0622a',1); ov(59,110,12,8,'#c68642','#a0622a',1);
+  // chin beard — grows into devil beard
+  const beardH = 15 + d*10;
+  ov(0,36+d*5,18+d*6,beardH,'#1a0a00');
+  // mouth — angry when devil
+  if (d > 0.3) {
+    // angry scowl
+    c.beginPath(); c.ellipse(cx,cy+26*s,11*s,5*s,0,0,Math.PI);
+    c.closePath(); c.fillStyle='#cc0000'; c.fill();
+    // teeth
+    c.fillStyle='white';
+    for(let i=0;i<4;i++){
+      c.fillRect(cx+(-16+i*10)*s,cy+22*s,7*s,6*s);
+    }
+  } else {
+    c.beginPath(); c.ellipse(cx,cy+29*s,9*s,6*s,0,Math.PI,Math.PI*2);
+    c.closePath(); c.fillStyle='#cc9966'; c.fill();
+  }
+  // hands
+  ov(-59,110,12,8,SKIN,SKIN_D,1); ov(59,110,12,8,SKIN,SKIN_D,1);
+
+  // HORNS (grow in when devil)
+  if (d > 0) {
+    const hornH = 32*s*d;
+    const hornW = 11*s*d;
+    // Left horn
+    c.beginPath();
+    c.moveTo(cx-30*s, cy-78*s);
+    c.quadraticCurveTo(cx-44*s, cy-78*s-hornH*0.6, cx-32*s, cy-78*s-hornH);
+    c.quadraticCurveTo(cx-18*s, cy-78*s-hornH*0.4, cx-22*s, cy-78*s);
+    c.closePath();
+    c.fillStyle=`rgba(150,0,0,${d})`; c.fill();
+    c.strokeStyle=`rgba(80,0,0,${d})`; c.lineWidth=1.5*s; c.stroke();
+    // Right horn
+    c.beginPath();
+    c.moveTo(cx+30*s, cy-78*s);
+    c.quadraticCurveTo(cx+44*s, cy-78*s-hornH*0.6, cx+32*s, cy-78*s-hornH);
+    c.quadraticCurveTo(cx+18*s, cy-78*s-hornH*0.4, cx+22*s, cy-78*s);
+    c.closePath();
+    c.fillStyle=`rgba(150,0,0,${d})`; c.fill();
+    c.strokeStyle=`rgba(80,0,0,${d})`; c.lineWidth=1.5*s; c.stroke();
+
+    // TAIL
+    const tailOpacity = d;
+    c.beginPath();
+    c.moveTo(cx+36*s, cy+100*s);
+    c.bezierCurveTo(cx+70*s,cy+110*s, cx+80*s,cy+85*s, cx+65*s,cy+75*s);
+    c.strokeStyle=`rgba(150,0,0,${tailOpacity})`; c.lineWidth=4*s; c.lineCap='round'; c.stroke();
+    // tail tip (arrow)
+    c.beginPath();
+    c.moveTo(cx+65*s,cy+75*s);
+    c.lineTo(cx+72*s,cy+68*s);
+    c.lineTo(cx+59*s,cy+68*s);
+    c.closePath();
+    c.fillStyle=`rgba(150,0,0,${tailOpacity})`; c.fill();
+  }
+
+  // ANGRY SHAKE GLOW
+  if (isAngry) {
+    c.save();
+    c.shadowColor='#ff0000'; c.shadowBlur=30*s;
+    c.beginPath(); c.ellipse(cx,cy-22*s,52*s,60*s,0,0,Math.PI*2);
+    c.strokeStyle=`rgba(255,0,0,${0.3+Math.random()*0.3})`; c.lineWidth=4*s; c.stroke();
+    c.restore();
+  }
 }
 
 function drawThinking(c,cx,cy,s) {
   const txt='thinking'+'.'.repeat(Math.floor(dots)%4);
-  const bx=cx+65*s, by=cy-100*s;
+  const bx=cx+65*s,by=cy-100*s;
   c.font=`bold 13px "Courier New"`;
   [...txt].forEach((ch,i)=>{
     const bob=Math.sin(Date.now()/250+i*0.5)*5;
-    c.fillStyle='#f39c12'; c.textAlign='left';
+    c.fillStyle= isDevil ? '#ff4400' : '#f39c12';
+    c.textAlign='left';
     c.fillText(ch,bx+i*11,by+bob);
   });
 }
 
 function drawBubble(c,cx,cy,s) {
-  const bx=cx+60*s, by=cy-115*s;
-  const maxW=Math.min(280,W-bx-10);
-  c.font=`11px "Courier New"`;
+  const bx=cx+60*s, by=cy-130*s;
+  const maxW=Math.min(320,W-bx-10);
+  const fontSize=14;
+  c.font=`bold ${fontSize}px "Courier New"`;
   const words=bubble.split(' '), lines=[];
   let line='';
   words.forEach(w=>{
     const test=line?line+' '+w:w;
-    if(c.measureText(test).width<maxW-24){line=test;}
+    if(c.measureText(test).width<maxW-28){line=test;}
     else{if(line)lines.push(line);line=w;}
   });
   if(line)lines.push(line);
-  const lh=17, bh=lines.length*lh+22, bw=maxW;
+
+  const lh=22, bh=lines.length*lh+28, bw=maxW;
   let rx=bx,ry=by;
   if(rx+bw>W-6){rx=W-bw-6;}
   if(rx<6){rx=6;}
   if(ry<6){ry=6;}
-  c.fillStyle='#fffef0'; c.strokeStyle='#333'; c.lineWidth=2;
+
+  const bubbleBg = isDevil ? '#1a0000' : '#fffef0';
+  const bubbleBd = isDevil ? '#ff2200' : '#333';
+  const textCol  = isDevil ? '#ff9999' : '#111';
+
+  c.fillStyle=bubbleBg; c.strokeStyle=bubbleBd; c.lineWidth=2.5;
   rr(c,rx,ry,bw,bh,10); c.fill(); c.stroke();
   const tx=Math.min(rx+44,rx+bw-22);
   c.beginPath(); c.moveTo(tx,ry+bh); c.lineTo(tx-9,ry+bh+18); c.lineTo(tx+16,ry+bh);
-  c.closePath(); c.fillStyle='#fffef0'; c.fill();
+  c.closePath(); c.fillStyle=bubbleBg; c.fill();
   c.beginPath(); c.moveTo(tx-9,ry+bh+18); c.lineTo(tx+16,ry+bh);
-  c.strokeStyle='#333'; c.lineWidth=2; c.stroke();
+  c.strokeStyle=bubbleBd; c.lineWidth=2.5; c.stroke();
   c.beginPath(); c.moveTo(tx-9,ry+bh+1); c.lineTo(tx+17,ry+bh+1);
-  c.strokeStyle='#fffef0'; c.lineWidth=3; c.stroke();
-  c.fillStyle='#111'; c.textAlign='left'; c.font=`11px "Courier New"`;
-  lines.forEach((ln,i)=>c.fillText(ln,rx+12,ry+16+i*lh));
+  c.strokeStyle=bubbleBg; c.lineWidth=3.5; c.stroke();
+
+  c.fillStyle=textCol; c.textAlign='left'; c.font=`bold ${fontSize}px "Courier New"`;
+  lines.forEach((ln,i)=>c.fillText(ln,rx+14,ry+20+i*lh));
 }
 </script>
 </body>
