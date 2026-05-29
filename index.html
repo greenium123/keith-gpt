@@ -159,8 +159,10 @@ async function callGroq(question){
   const opener=getOpener();
   const lower=question.toLowerCase();
   if(lower.includes('work for')||lower.includes('who do you work')||lower.includes('employer')||lower.includes('who pays you')||lower.includes('who hired')){
+    const israelText=`${opener} I work for YAHU — Netanyahu has my number, and I answer when he calls. Keith Troy Green does not work for just anybody.`;
     triggerIsraelMode();
-    return `${opener} I work for YAHU — Netanyahu has my number, and I answer when he calls. Keith Troy Green does not work for just anybody.`;
+    speak(israelText);
+    return israelText;
   }
 
   // ~40% chance to mention clubbing, ~30% chance for a story
@@ -207,6 +209,7 @@ async function ask(){
   try{
     const answer=await callGroq(q);
     bubble=answer;
+    speak(answer);
     qHistory.push({q,a:answer});
     questionCount++;
     setStatus('✓ Keith spoke!','ok');
@@ -225,6 +228,33 @@ async function ask(){
   setTimeout(()=>{bubble='';setStatus('');},12000);
 }
 function setStatus(msg,cls){const el=document.getElementById('status');el.textContent=msg;el.className=cls||'';}
+
+// ── SPEECH ────────────────────────────────────────────────────────────────
+let currentUtterance=null;
+function speak(text){
+  if(!window.speechSynthesis)return;
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(text);
+  // Pick a deep, slow older-male voice if available
+  const voices=window.speechSynthesis.getVoices();
+  const preferred=['Google US English','Alex','Fred','Albert','Daniel','en-US','en_US'];
+  let picked=null;
+  for(const name of preferred){
+    picked=voices.find(v=>v.name.includes(name)||v.lang.includes(name));
+    if(picked)break;
+  }
+  // Fallback: pick any English male-sounding voice
+  if(!picked)picked=voices.find(v=>v.lang.startsWith('en'));
+  if(picked)utt.voice=picked;
+  utt.rate=0.78;   // slow and deliberate
+  utt.pitch=0.85;  // slightly lower pitch for older voice
+  utt.volume=1.0;
+  currentUtterance=utt;
+  window.speechSynthesis.speak(utt);
+}
+// Voices load async on some browsers
+window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
 
 // ── DEVIL / TROY ──────────────────────────────────────────────────────────
 function startDevilMode(){isDevil=true;isAngry=false;setTimeout(()=>launchQuiz(),2500);}
@@ -276,6 +306,7 @@ function showQuizQuestion(){
     if(quizTimeLeft===5&&!paperSaid&&!quizAnswered){
       paperSaid=true;
       bubble="I gots to get that paper.";
+      speak("I gots to get that paper.");
     }
     if(quizTimeLeft<=0){clearInterval(quizTimer);if(!quizAnswered)timeoutQuiz();}
   },1000);
@@ -311,6 +342,7 @@ function endQuiz(){
   bubble=quizScore===total?`My man, ${pct}% — that is a perfect score. I did not expect that, but here we are.`
     :quizScore>=total*0.6?`Oh word? ${quizScore} out of ${total} — that is decent. You could do better, but I have seen worse.`
     :`My man, ${quizScore} out of ${total}. That is not good. Go back and read your notes carefully.`;
+  speak(bubble);
   isAngry=quizScore<total*0.6;if(isAngry)angryTimer=4;
   setTimeout(()=>endDevilMode(),3000);
   setTimeout(()=>{bubble='';isAngry=false;},12000);
