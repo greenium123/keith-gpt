@@ -55,13 +55,14 @@
   #quiz-next-btn{margin-top:12px;background:#cc0000;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;display:none}
   #quiz-next-btn:hover{background:#ff0000}
 
-  /* ISRAEL OVERLAY */
-  #israel-overlay{display:none;position:fixed;inset:0;z-index:600;flex-direction:column;align-items:center;justify-content:center;background:#fff}
+  /* ISRAEL OVERLAY — behind the canvas inside scene-wrap */
+  #israel-overlay{display:none;position:absolute;inset:0;z-index:0;flex-direction:column;align-items:center;justify-content:center;background:#fff;pointer-events:none}
   #israel-overlay.active{display:flex}
   #israel-stripes-top{position:absolute;top:0;left:0;right:0;height:22%;background:#0038b8}
   #israel-stripes-bot{position:absolute;bottom:0;left:0;right:0;height:22%;background:#0038b8}
   #israel-star{font-size:120px;z-index:1;animation:spinStar 1s linear infinite}
-  #israel-text{z-index:1;color:#0038b8;font-size:18px;font-weight:bold;margin-top:16px;letter-spacing:2px}
+  #israel-text{z-index:1;color:#0038b8;font-size:22px;font-weight:bold;margin-top:16px;letter-spacing:3px;text-shadow:1px 1px 0 #aac4ff}
+  canvas{position:relative;z-index:1;background:transparent}
 
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
   @keyframes spinStar{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -73,14 +74,6 @@
   <div id="loader-keith">KEITH</div>
   <div id="loader-sub">Oh word?</div>
   <div id="loader-bar"><div id="loader-fill"></div></div>
-</div>
-
-<!-- ISRAEL OVERLAY -->
-<div id="israel-overlay">
-  <div id="israel-stripes-top"></div>
-  <div id="israel-stripes-bot"></div>
-  <div id="israel-star">✡</div>
-  <div id="israel-text">KEITH WORKS FOR TEL AVIV 🇮🇱</div>
 </div>
 
 <!-- QUIZ OVERLAY -->
@@ -95,7 +88,15 @@
   <button id="quiz-next-btn" onclick="quizNext()">NEXT →</button>
 </div>
 
-<div id="scene-wrap"><canvas id="c"></canvas></div>
+<div id="scene-wrap">
+  <div id="israel-overlay">
+    <div id="israel-stripes-top"></div>
+    <div id="israel-stripes-bot"></div>
+    <div id="israel-star">✡</div>
+    <div id="israel-text">KEITH WORKS FOR YAHU 🇮🇱</div>
+  </div>
+  <canvas id="c"></canvas>
+</div>
 <div id="bottom">
   <div id="title">⚗ KEITH GPT ⚗</div>
   <div id="setup-banner">
@@ -175,7 +176,7 @@ async function callGroq(question){
   const lower=question.toLowerCase();
   if(lower.includes('work for')||lower.includes('who do you work')||lower.includes('employer')||lower.includes('who pays')){
     triggerIsraelMode();
-    return `${opener} I work for Tel Aviv — straight up reporting to Netanyahu himself. The science doesn't lie, and neither does Keith Troy Green.`;
+    return `${opener} I work for YAHU — straight up. Netanyahu's on speed dial, my man. The science doesn't lie, and neither does Keith Troy Green.`;
   }
 
   const sys=`You are Keith GPT, real name Keith Troy Green — a cool, enthusiastic science teacher and AI assistant.
@@ -379,6 +380,7 @@ function draw(){
   const c=ctx,p=dpr;
   c.setTransform(p,0,0,p,0,0);
   c.clearRect(0,0,W,H);
+  if(!israelMode){c.fillStyle='#0d1b2a';c.fillRect(0,0,W,H);}
   const sx=isAngry?(Math.random()-0.5)*shake:0;
   const sy=isAngry?(Math.random()-0.5)*shake*0.5:0;
   c.translate(sx,sy);
@@ -511,12 +513,7 @@ function drawKeith(c,cx,cy,s){
   ln(-37,-22,-13,-26,'#0a0000',3);ln(13,-26,37,-22,'#0a0000',3);
   // ears
   ov(-55,-8,8,10,SKIN,SKIN_D,1);ov(55,-8,8,10,SKIN,SKIN_D,1);
-  // glasses
-  c.globalAlpha=0.5;
-  ov(-24,-9,15,10,'#aabbcc','#555',2);ov(24,-9,15,10,'#aabbcc','#555',2);
-  c.globalAlpha=1;
-  ov(-24,-9,15,10,'transparent','#555',2);ov(24,-9,15,10,'transparent','#555',2);
-  ln(-9,-9,9,-9,'#555',2);ln(-39,-9,-55,-13,'#555',2);ln(39,-9,55,-13,'#555',2);
+
 
   // EYES
   if(starOfDavidEyes){
