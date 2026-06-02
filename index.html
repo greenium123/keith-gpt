@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Keith GPT</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1b2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Keith GPT">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
@@ -91,7 +101,7 @@
   <div id="title">⚗ KEITH GPT ⚗</div>
   <div id="setup-banner">
     🔑 Free key at <a href="https://console.groq.com" target="_blank">console.groq.com</a> — paste below:
-    <input type="password" id="key-input" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+    <input type="password" id="key-input" placeholder="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" autocomplete="off">
     <button id="save-key-btn" onclick="saveKey()">Save Key ✓</button>
   </div>
   <div id="input-row">
@@ -743,6 +753,13 @@ function drawBubble(c,cx,cy,s){
   c.fillStyle=btx;c.textAlign='left';
   c.font=`bold ${fontSize}px Arial, sans-serif`;
   lines.forEach((ln,i)=>c.fillText(ln,rx+padding,ry+padding+fontSize+i*lh));
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
 }
 </script>
 </body>
