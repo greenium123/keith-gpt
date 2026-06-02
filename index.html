@@ -211,7 +211,7 @@ async function ask(){
   if(!q)return;
   document.getElementById('question').value='';
   document.getElementById('ask-btn').disabled=true;
-  bubble='';thinking=true;targetScale=1.45;
+  bubble='';thinking=true;targetScale=1.35;
   setStatus('Connecting…');
   try{
     const answer=await callGroq(q);
@@ -385,17 +385,33 @@ function draw(){
   const c=ctx,p=dpr;
   c.setTransform(p,0,0,p,0,0);
   c.clearRect(0,0,W,H);
+
+  const landscape = W > H;
+
+  // Responsive Keith scale — shrink to fit, never overflow
+  // In portrait: Keith takes up ~38% of height
+  // In landscape: Keith takes up ~52% of height (scene is shorter)
+  const baseScale = landscape ? (H * 0.0028) : (H * 0.0022);
+  const ks = kScale * Math.min(baseScale, W * 0.0018);
+
+  // Keith x: in landscape shift left to leave room for bubble on right
+  // In portrait: centred
+  const keithCX = landscape ? W * 0.38 : W * 0.5;
+  // Keith y: sit on the desk, which is at ~77% of scene height
+  const deskY = H * 0.77;
+  // Keith body bottom should sit at deskY; offset by ~110*ks (bottom of body)
+  const keithCY = deskY - 110*ks + Math.sin(bobT)*2;
+
   const sx=isAngry?(Math.random()-0.5)*shake:0;
   const sy=isAngry?(Math.random()-0.5)*shake*0.5:0;
   c.translate(sx,sy);
-  // Only fill bg if not in israel mode (flag shows through)
+
   if(!israelMode){c.fillStyle='#0d1b2a';c.fillRect(0,0,W,H);}
   drawBg(c);
   drawDesk(c);
-  const cx=W/2,cy=H*0.46+Math.sin(bobT)*2.5;
-  drawKeith(c,cx,cy,kScale);
-  if(thinking)drawThinking(c,cx,cy,kScale);
-  if(bubble)  drawBubble(c,cx,cy,kScale);
+  drawKeith(c,keithCX,keithCY,ks);
+  if(thinking)drawThinking(c,keithCX,keithCY,ks);
+  if(bubble)  drawBubble(c,keithCX,keithCY,ks,landscape);
   if(devilIntensity>0){
     const grad=c.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
     grad.addColorStop(0,'rgba(0,0,0,0)');
@@ -687,63 +703,89 @@ function drawKeith(c,cx,cy,s){
 // ── THINKING ──────────────────────────────────────────────────────────────
 function drawThinking(c,cx,cy,s){
   const txt='thinking'+'.'.repeat(Math.floor(dots)%4);
-  const bx=cx+65*s,by=cy-100*s;
-  c.font=`bold 13px "Courier New"`;
+  // Place above head, left-aligned from centre
+  const bx=cx-40*s, by=cy-95*s;
+  const fs=Math.max(10,Math.min(13,W*0.03));
+  c.font=`bold ${fs}px "Courier New"`;
   [...txt].forEach((ch,i)=>{
-    const bob=Math.sin(Date.now()/250+i*0.5)*5;
+    const bob=Math.sin(Date.now()/250+i*0.5)*4;
     c.fillStyle=isDevil?'#ff4400':'#f39c12';
-    c.textAlign='left';c.fillText(ch,bx+i*11,by+bob);
+    c.textAlign='left';c.fillText(ch,bx+i*(fs*0.72),by+bob);
   });
 }
 
 // ── BUBBLE ────────────────────────────────────────────────────────────────
-function drawBubble(c,cx,cy,s){
-  const fontSize=13;
-  const padding=12;
-  const maxLineW=Math.min(W*0.70,300);
+function drawBubble(c,cx,cy,s,landscape){
+  const fontSize = Math.max(11, Math.min(14, W*0.032));
+  const padding  = 12;
+  const bbg = isDevil?'#1a0000':'#ffffff';
+  const bbd = isDevil?'#ff2200':'#1a1a1a';
+  const btx = isDevil?'#ff9999':'#111111';
+
+  // Bubble width — in landscape goes on right side; portrait goes above head
+  const bw = landscape
+    ? Math.min(W*0.48, 280)   // right panel
+    : Math.min(W*0.82, 300);  // above head
 
   c.font=`bold ${fontSize}px Arial, sans-serif`;
   const words=bubble.split(' '),lines=[];
   let line='';
   words.forEach(w=>{
     const test=line?line+' '+w:w;
-    if(c.measureText(test).width<maxLineW-padding*2){line=test;}
+    if(c.measureText(test).width<bw-padding*2){line=test;}
     else{if(line)lines.push(line);line=w;}
   });
   if(line)lines.push(line);
 
-  const lh=19,bh=lines.length*lh+padding*2,bw=maxLineW;
-
-  // Place bubble ABOVE Keith's head, horizontally centred on screen
+  const lh=fontSize+6, bh=lines.length*lh+padding*2;
   const headTop = cy - 80*s;
-  let ry = headTop - bh - 18;
-  if(ry < 8) ry = 8;
-  let rx = (W - bw) / 2;
-  if(rx < 8) rx = 8;
-  if(rx+bw > W-8) rx = W-bw-8;
 
-  const bbg=isDevil?'#1a0000':'#ffffff';
-  const bbd=isDevil?'#ff2200':'#1a1a1a';
-  const btx=isDevil?'#ff9999':'#111111';
+  let rx, ry, tailFromSide;
+  if(landscape){
+    // Right of Keith, vertically centred in scene
+    rx = cx + 60*s;
+    if(rx+bw > W-8) rx = W-bw-8;
+    ry = Math.max(8, headTop - bh*0.3);
+    if(ry+bh > H-8) ry = H-bh-8;
+    tailFromSide = true;
+  } else {
+    // Above head, horizontally centred
+    rx = (W-bw)/2;
+    if(rx < 8) rx = 8;
+    ry = Math.max(8, headTop - bh - 14);
+    tailFromSide = false;
+  }
 
-  // Shadow
-  c.shadowColor='rgba(0,0,0,0.4)';c.shadowBlur=14;c.shadowOffsetX=0;c.shadowOffsetY=4;
-  c.fillStyle=bbg;rr(c,rx,ry,bw,bh,14);c.fill();
+  // Shadow + fill
+  c.shadowColor='rgba(0,0,0,0.35)';c.shadowBlur=12;c.shadowOffsetX=0;c.shadowOffsetY=3;
+  c.fillStyle=bbg;rr(c,rx,ry,bw,bh,12);c.fill();
   c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetX=0;c.shadowOffsetY=0;
-  c.strokeStyle=bbd;c.lineWidth=2;rr(c,rx,ry,bw,bh,14);c.stroke();
+  c.strokeStyle=bbd;c.lineWidth=1.5;rr(c,rx,ry,bw,bh,12);c.stroke();
 
-  // Tail points straight down to Keith head centre
-  const tailX=Math.max(rx+20,Math.min(cx,rx+bw-20));
-  c.beginPath();
-  c.moveTo(tailX-9,ry+bh);
-  c.lineTo(tailX+9,ry+bh);
-  c.lineTo(cx, headTop-4);
-  c.closePath();
-  c.fillStyle=bbg;c.fill();
-  c.beginPath();c.moveTo(tailX-9,ry+bh);c.lineTo(cx,headTop-4);c.lineTo(tailX+9,ry+bh);
-  c.strokeStyle=bbd;c.lineWidth=2;c.stroke();
-  c.beginPath();c.moveTo(tailX-9,ry+bh+1);c.lineTo(tailX+9,ry+bh+1);
-  c.strokeStyle=bbg;c.lineWidth=3;c.stroke();
+  // Tail
+  if(tailFromSide){
+    // Tail on left side of bubble pointing to Keith
+    const ty = ry + bh*0.5;
+    c.beginPath();
+    c.moveTo(rx, ty-8);
+    c.lineTo(cx+55*s, cy-20*s);
+    c.lineTo(rx, ty+8);
+    c.closePath();
+    c.fillStyle=bbg;c.fill();
+    c.beginPath();c.moveTo(rx,ty-8);c.lineTo(cx+55*s,cy-20*s);c.lineTo(rx,ty+8);
+    c.strokeStyle=bbd;c.lineWidth=1.5;c.stroke();
+    c.beginPath();c.moveTo(rx+1,ty-8);c.lineTo(rx+1,ty+8);
+    c.strokeStyle=bbg;c.lineWidth=3;c.stroke();
+  } else {
+    // Tail on bottom pointing down to head
+    const tailX=Math.max(rx+18,Math.min(cx,rx+bw-18));
+    c.beginPath();c.moveTo(tailX-8,ry+bh);c.lineTo(tailX+8,ry+bh);c.lineTo(cx,headTop-6);
+    c.closePath();c.fillStyle=bbg;c.fill();
+    c.beginPath();c.moveTo(tailX-8,ry+bh);c.lineTo(cx,headTop-6);c.lineTo(tailX+8,ry+bh);
+    c.strokeStyle=bbd;c.lineWidth=1.5;c.stroke();
+    c.beginPath();c.moveTo(tailX-8,ry+bh+1);c.lineTo(tailX+8,ry+bh+1);
+    c.strokeStyle=bbg;c.lineWidth=3;c.stroke();
+  }
 
   c.fillStyle=btx;c.textAlign='left';
   c.font=`bold ${fontSize}px Arial, sans-serif`;
