@@ -15,8 +15,10 @@
 body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
 
 /* ── SCREENS ── */
-.screen{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.screen{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .screen.active{display:flex}
+/* Vertically centre screens that don't need scrolling */
+#screen-home,#screen-auth{justify-content:center}
 
 /* ── HOME ── */
 #screen-home{background:linear-gradient(160deg,#0d1b2a 0%,#1a2f1a 100%)}
@@ -102,20 +104,19 @@ body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overfl
 
 /* ── WHACK ── */
 #screen-whack{background:#0d2a0d;padding:0;justify-content:flex-start}
-#whack-header{width:100%;background:#0a1a0a;border-bottom:2px solid #2ecc71;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#whack-header{width:100%;background:#0a1a0a;border-bottom:2px solid #2ecc71;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:2}
 #whack-title{color:#2ecc71;font-size:14px;font-weight:bold;letter-spacing:2px}
-#whack-stats{display:flex;gap:12px;font-size:12px}
-#whack-timer{color:#f39c12;font-weight:bold}
+#whack-stats{display:flex;gap:16px;font-size:13px;align-items:center}
+#whack-timer{color:#f39c12;font-weight:bold;font-size:15px}
 #whack-hits{color:#e0f0ff}
-#whack-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:10px;padding:12px;width:100%}
-.whack-hole{background:#1a0d00;border-radius:50%;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative;cursor:pointer;border:3px solid #3d2000;transition:transform .1s}
-.whack-hole:active{transform:scale(0.95)}
-.whack-keith-wrap{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;transform:translateY(100%);transition:transform 0.18s}
-.whack-keith-wrap.up{transform:translateY(10%)}
-.whack-keith-wrap canvas{display:block}
-#whack-bottom{width:100%;background:#0a1a0a;border-top:2px solid #1a3a1a;padding:10px 16px calc(10px + env(safe-area-inset-bottom));flex-shrink:0;text-align:center}
-#whack-result{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;z-index:10}
+#whack-canvas-wrap{flex:1;width:100%;position:relative;overflow:hidden;min-height:0}
+#whack-canvas{display:block;width:100%;height:100%;touch-action:none}
+#whack-bottom{width:100%;background:#0a1a0a;border-top:2px solid #1a3a1a;padding:8px 16px calc(10px + env(safe-area-inset-bottom));flex-shrink:0;text-align:center}
+#whack-result{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center;z-index:10;padding:24px}
 #whack-result.active{display:flex}
+#whack-result-title{color:#2ecc71;font-size:26px;font-weight:bold;margin-bottom:12px;text-align:center}
+#whack-result-msg{color:#e0f0ff;font-size:14px;text-align:center;margin-bottom:12px;line-height:1.6}
+#whack-result-gb{font-size:22px;color:#f39c12;font-weight:bold;margin-bottom:20px}
 
 /* ── LOADER ── */
 #loader{position:fixed;inset:0;background:#0d1b2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.8s ease}
@@ -241,14 +242,16 @@ body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overfl
       <div id="whack-hits">Hits: <span id="whack-hit-count">0</span></div>
     </div>
   </div>
-  <div id="whack-grid"></div>
+  <div id="whack-canvas-wrap">
+    <canvas id="whack-canvas"></canvas>
+  </div>
   <div id="whack-bottom">
-    <div style="color:#6688aa;font-size:11px">Whack Keith to earn 💵 greenbacks!</div>
+    <div style="color:#aaffaa;font-size:12px;font-weight:bold">TAP KEITH TO WHACK HIM 🔨</div>
   </div>
   <div id="whack-result">
-    <div id="tread-result-title" style="color:#2ecc71"></div>
-    <div id="whack-result-msg" style="color:#e0f0ff;font-size:14px;text-align:center;margin:12px 0;line-height:1.6"></div>
-    <div id="whack-result-gb" style="font-size:20px;color:#f39c12;font-weight:bold;margin-bottom:20px"></div>
+    <div id="whack-result-title"></div>
+    <div id="whack-result-msg"></div>
+    <div id="whack-result-gb"></div>
     <button class="result-btn" onclick="endWhack()">← Back to Menu</button>
   </div>
 </div>
@@ -269,7 +272,7 @@ body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overfl
 // ═══════════════════════════════════════════════════════
 // PROXY / API
 // ═══════════════════════════════════════════════════════
-const PROXY_URL = 'https://super-heart-37c5.jadelady1912.workers.dev/';
+const PROXY_URL = 'https://keith-gpt.YOUR-SUBDOMAIN.workers.dev';
 
 async function groqChat(messages, maxTokens=200){
   const res = await fetch(PROXY_URL,{
@@ -887,12 +890,15 @@ function rrt(c,x,y,w,h,r){
 }
 
 // ═══════════════════════════════════════════════════════
-// WHACK-A-KEITH
 // ═══════════════════════════════════════════════════════
+// WHACK-A-KEITH — single canvas, full touch support
+// ═══════════════════════════════════════════════════════
+const WCOLS=3,WROWS=3,HOLE_COUNT=9;
 let whackTimer=null,whackTimeLeft=30,whackHits=0,whackRunning=false;
-const HOLE_COUNT=9;
-let holeStates=new Array(HOLE_COUNT).fill(false); // true = keith visible
+let whackCanvas,wctx,wW,wH,wDpr;
+let holes=[]; // {x,y,r,state,riseT,angry,angryT}
 let holeTimers=[];
+let whackAnimFrame=null;
 
 function startWhack(){
   showScreen('whack');
@@ -900,111 +906,196 @@ function startWhack(){
   document.getElementById('whack-hit-count').textContent='0';
   document.getElementById('whack-timer').textContent='⏱ 30';
   document.getElementById('whack-result').classList.remove('active');
-  buildWhackGrid();
-  // Timer
+  whackCanvas=document.getElementById('whack-canvas');
+  wctx=whackCanvas.getContext('2d');
+  setupWhackCanvas();
+
+  // Countdown timer
+  clearInterval(whackTimer);
   whackTimer=setInterval(()=>{
     whackTimeLeft--;
     document.getElementById('whack-timer').textContent='⏱ '+whackTimeLeft;
-    if(whackTimeLeft<=0){ clearInterval(whackTimer); endWhackGame(); }
+    if(whackTimeLeft<=0){clearInterval(whackTimer);endWhackGame();}
   },1000);
-  // Pop keiths up randomly
-  scheduleWhackPops();
-}
 
-function buildWhackGrid(){
-  const grid=document.getElementById('whack-grid');
-  grid.innerHTML='';
-  holeStates=new Array(HOLE_COUNT).fill(false);
+  // Start popping keiths — only one at a time
   holeTimers.forEach(t=>clearTimeout(t));holeTimers=[];
-  for(let i=0;i<HOLE_COUNT;i++){
-    const hole=document.createElement('div');
-    hole.className='whack-hole';
-    hole.dataset.idx=i;
-    // Keith canvas inside
-    const wrap=document.createElement('div');
-    wrap.className='whack-keith-wrap';
-    wrap.id='whack-wrap-'+i;
-    const c=document.createElement('canvas');
-    c.width=70;c.height=70;c.id='whack-c-'+i;
-    wrap.appendChild(c);
-    hole.appendChild(wrap);
-    hole.addEventListener('click',()=>whackHit(i));
-    hole.addEventListener('touchstart',e=>{e.preventDefault();whackHit(i);},{passive:false});
-    grid.appendChild(hole);
-    drawWhackKeith(i,false);
+  scheduleNextPop();
+
+  // Render loop
+  if(whackAnimFrame)cancelAnimationFrame(whackAnimFrame);
+  whackLoop();
+
+  // Touch/click handler
+  whackCanvas.ontouchstart=null;whackCanvas.onclick=null;
+  whackCanvas.addEventListener('touchstart',onWhackTouch,{passive:false});
+  whackCanvas.addEventListener('click',onWhackClick);
+}
+
+function setupWhackCanvas(){
+  const wrap=document.getElementById('whack-canvas-wrap');
+  wDpr=window.devicePixelRatio||1;
+  wW=wrap.clientWidth; wH=wrap.clientHeight;
+  whackCanvas.width=wW*wDpr; whackCanvas.height=wH*wDpr;
+  whackCanvas.style.width=wW+'px'; whackCanvas.style.height=wH+'px';
+  buildHoles();
+}
+
+function buildHoles(){
+  holes=[];
+  const padX=wW*0.06, padY=wH*0.06;
+  const cellW=(wW-padX*2)/WCOLS, cellH=(wH-padY*2)/WROWS;
+  const r=Math.min(cellW,cellH)*0.38;
+  for(let row=0;row<WROWS;row++){
+    for(let col=0;col<WCOLS;col++){
+      holes.push({
+        x: padX+col*cellW+cellW/2,
+        y: padY+row*cellH+cellH/2,
+        r,
+        state:0,   // 0=hidden,1=rising,2=up,3=falling
+        riseT:0,   // 0..1
+        angry:false,
+        angryT:0
+      });
+    }
   }
 }
 
-function drawWhackKeith(idx,angry){
-  const c=document.getElementById('whack-c-'+idx);
-  if(!c)return;
-  const ctx=c.getContext('2d');
-  ctx.clearRect(0,0,70,70);
-  // Just a small Keith face
-  const cx=35,cy=52;
-  drawKeithFace(ctx,cx,cy,0.55,angry);
+function whackLoop(){
+  if(!whackRunning){drawWhackFrame();return;}
+  drawWhackFrame();
+  whackAnimFrame=requestAnimationFrame(whackLoop);
 }
 
-function scheduleWhackPops(){
-  if(!whackRunning)return;
-  for(let i=0;i<HOLE_COUNT;i++){
-    scheduleOnePop(i);
-  }
+function drawWhackFrame(){
+  const p=wDpr;
+  wctx.setTransform(p,0,0,p,0,0);
+  wctx.clearRect(0,0,wW,wH);
+
+  // Grass background
+  wctx.fillStyle='#1a3a0a';wctx.fillRect(0,0,wW,wH);
+  // Dirt patches under holes
+  holes.forEach(h=>{
+    wctx.beginPath();wctx.ellipse(h.x,h.y+h.r*0.3,h.r*1.1,h.r*0.45,0,0,Math.PI*2);
+    wctx.fillStyle='#3d1f00';wctx.fill();
+    wctx.strokeStyle='#2a1000';wctx.lineWidth=2;wctx.stroke();
+  });
+
+  // Draw each hole + keith
+  holes.forEach((h,i)=>{
+    // Clip to hole ellipse for keith
+    const rise=easeInOut(h.riseT);
+    const keithVisible=h.state===1||h.state===2||h.state===3;
+    const keithY=h.y+h.r*0.25 - rise*h.r*1.4;
+
+    // Hole shadow
+    wctx.save();
+    wctx.beginPath();
+    wctx.ellipse(h.x,h.y+h.r*0.3,h.r*1.05,h.r*0.4,0,0,Math.PI*2);
+    wctx.fillStyle='rgba(0,0,0,0.5)';wctx.fill();
+    wctx.restore();
+
+    if(keithVisible && rise>0.05){
+      // Clip keith inside hole
+      wctx.save();
+      wctx.beginPath();
+      wctx.ellipse(h.x,h.y+h.r*0.3,h.r*1.05,h.r*0.42,0,0,Math.PI*2);
+      wctx.rect(h.x-h.r*1.1,keithY-h.r*1.8,h.r*2.2,h.y+h.r*0.72-(keithY-h.r*1.8));
+      wctx.clip('evenodd');
+      wctx.beginPath();
+      wctx.rect(h.x-h.r*1.1,keithY-h.r*1.8,h.r*2.2,h.y+h.r*0.72-(keithY-h.r*1.8));
+      wctx.clip();
+      // Draw Keith head
+      const s=h.r*0.018;
+      drawKeithFace(wctx,h.x,keithY,s,h.angry);
+      wctx.restore();
+    }
+
+    // Hole rim on top
+    wctx.save();
+    wctx.beginPath();
+    wctx.ellipse(h.x,h.y+h.r*0.3,h.r*1.05,h.r*0.4,0,0,Math.PI*2);
+    wctx.strokeStyle='#5a3000';wctx.lineWidth=3;wctx.stroke();
+    wctx.restore();
+
+    // Angry flash
+    if(h.angry){
+      wctx.save();
+      wctx.globalAlpha=0.35*h.angryT;
+      wctx.beginPath();wctx.ellipse(h.x,h.y,h.r*1.2,h.r*0.5,0,0,Math.PI*2);
+      wctx.fillStyle='#ff4400';wctx.fill();
+      wctx.restore();
+    }
+
+    // Update animation
+    const spd=0.06;
+    if(h.state===1){h.riseT=Math.min(1,h.riseT+spd);}
+    if(h.state===3){h.riseT=Math.max(0,h.riseT-spd);if(h.riseT<=0)h.state=0;}
+    if(h.angry){h.angryT=Math.max(0,h.angryT-0.04);if(h.angryT<=0)h.angry=false;}
+  });
+
+  // Hammer cursor hint at top
+  wctx.fillStyle='rgba(255,255,255,0.06)';wctx.font=`${Math.max(12,wW*0.035)}px Arial`;
+  wctx.textAlign='center';wctx.fillText('🔨',wW/2,20);
 }
 
-function scheduleOnePop(i){
+function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+
+function scheduleNextPop(){
   if(!whackRunning)return;
-  const delay=500+Math.random()*2000;
+  // Pick a random hole that is currently hidden
+  const available=holes.map((h,i)=>h.state===0?i:-1).filter(i=>i>=0);
+  if(available.length===0){setTimeout(scheduleNextPop,200);return;}
+  const i=available[Math.floor(Math.random()*available.length)];
+  const delay=300+Math.random()*900;
   const t=setTimeout(()=>{
-    if(!whackRunning)return;
-    popKeith(i);
+    if(!whackRunning||holes[i].state!==0){scheduleNextPop();return;}
+    holes[i].state=1;holes[i].riseT=0;
+    // Auto-hide after random time, then schedule next
+    const upTime=800+Math.random()*900;
+    const t2=setTimeout(()=>{
+      if(holes[i].state===1||holes[i].state===2)holes[i].state=3;
+      setTimeout(scheduleNextPop,350);
+    },upTime);
+    holeTimers.push(t2);
   },delay);
-  holeTimers[i]=t;
+  holeTimers.push(t);
 }
 
-function popKeith(i){
-  if(!whackRunning)return;
-  holeStates[i]=true;
-  const wrap=document.getElementById('whack-wrap-'+i);
-  if(wrap)wrap.classList.add('up');
-  drawWhackKeith(i,false);
-  // Auto-hide after random time
-  const showTime=800+Math.random()*1200;
-  const t=setTimeout(()=>{
-    hideKeith(i);
-    scheduleOnePop(i);
-  },showTime);
-  holeTimers[i]=t;
+function onWhackTouch(e){
+  e.preventDefault();
+  const touch=e.changedTouches[0];
+  const rect=whackCanvas.getBoundingClientRect();
+  const tx=(touch.clientX-rect.left);
+  const ty=(touch.clientY-rect.top);
+  checkWhackHit(tx,ty);
 }
-
-function hideKeith(i){
-  holeStates[i]=false;
-  const wrap=document.getElementById('whack-wrap-'+i);
-  if(wrap)wrap.classList.remove('up');
+function onWhackClick(e){
+  const rect=whackCanvas.getBoundingClientRect();
+  checkWhackHit(e.clientX-rect.left,e.clientY-rect.top);
 }
-
-function whackHit(i){
-  if(!whackRunning||!holeStates[i])return;
-  whackHits++;
-  document.getElementById('whack-hit-count').textContent=whackHits;
-  holeStates[i]=false;
-  clearTimeout(holeTimers[i]);
-  drawWhackKeith(i,true);
-  const wrap=document.getElementById('whack-wrap-'+i);
-  if(wrap){
-    wrap.classList.add('up');
-    setTimeout(()=>{wrap.classList.remove('up');drawWhackKeith(i,false);scheduleOnePop(i);},300);
-  }
+function checkWhackHit(tx,ty){
+  holes.forEach((h,i)=>{
+    if(h.state===0||h.riseT<0.3)return;
+    const dx=tx-h.x, dy=ty-(h.y+h.r*0.3-h.riseT*h.r*1.4);
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<h.r*1.1){
+      whackHits++;
+      document.getElementById('whack-hit-count').textContent=whackHits;
+      h.state=3;h.angry=true;h.angryT=1.0;
+      clearTimeout(holeTimers[i]);
+      holeTimers[i]=setTimeout(()=>scheduleNextPop(),400);
+    }
+  });
 }
 
 function endWhackGame(){
   whackRunning=false;
   holeTimers.forEach(t=>clearTimeout(t));
-  // Greenbacks: 1 per hit + 3 for playing
+  cancelAnimationFrame(whackAnimFrame);
   const gb=whackHits+3;
   addGreenbacks(gb);
-  const resTitle=document.querySelector('#whack-result #tread-result-title');
-  if(resTitle)resTitle.textContent=whackHits>15?'🔨 WHACK MASTER!':whackHits>7?'💪 Not Bad!':'😬 Keep Practicing!';
+  document.getElementById('whack-result-title').textContent=whackHits>15?'🔨 WHACK MASTER!':whackHits>7?'💪 Not Bad!':'😬 Keep Practicing!';
   document.getElementById('whack-result-msg').textContent=`You whacked Keith ${whackHits} times in 30 seconds!`;
   document.getElementById('whack-result-gb').textContent=`+${gb} 💵 greenbacks earned!`;
   document.getElementById('whack-result').classList.add('active');
@@ -1013,6 +1104,7 @@ function endWhackGame(){
 function endWhack(){
   clearInterval(whackTimer);
   holeTimers.forEach(t=>clearTimeout(t));
+  cancelAnimationFrame(whackAnimFrame);
   whackRunning=false;
   document.getElementById('whack-result').classList.remove('active');
   showScreen('main');
