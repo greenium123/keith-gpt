@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Keith GPT</title>
 
 <!-- PWA -->
@@ -25,20 +25,34 @@
   #israel-star{font-size:110px;z-index:1;animation:spinStar 1s linear infinite}
   #israel-text{z-index:1;color:#0038b8;font-size:20px;font-weight:bold;margin-top:12px;letter-spacing:3px}
   canvas{display:block;width:100%;height:100%;position:relative;z-index:1;background:transparent}
-  #bottom{background:#0a1520;padding:8px 14px 12px;border-top:1px solid #1e3050;flex-shrink:0}
-  #title{text-align:center;color:#f39c12;font-size:13px;font-weight:bold;letter-spacing:2px;margin-bottom:6px}
-
-  #input-row{display:flex;gap:8px;align-items:center}
-  #question{flex:1;background:#1e2d3d;color:#e0f0ff;border:1px solid #2a4060;border-radius:8px;padding:9px 12px;font-family:'Courier New',monospace;font-size:13px;outline:none;caret-color:#e0f0ff}
+  #bottom{
+    background:#0a1520;
+    padding:10px 16px calc(14px + env(safe-area-inset-bottom)) 16px;
+    padding-left:calc(16px + env(safe-area-inset-left));
+    padding-right:calc(16px + env(safe-area-inset-right));
+    border-top:2px solid #1e3050;flex-shrink:0;
+  }
+  #title{text-align:center;color:#f39c12;font-size:14px;font-weight:bold;letter-spacing:3px;margin-bottom:8px}
+  #input-row{display:flex;gap:10px;align-items:center}
+  #question{
+    flex:1;background:#1e2d3d;color:#e0f0ff;
+    border:1.5px solid #2a4060;border-radius:12px;
+    padding:12px 14px;font-family:'Courier New',monospace;
+    font-size:15px;outline:none;caret-color:#e0f0ff;-webkit-appearance:none;
+  }
   #question::placeholder{color:#4a6080}
-  #question:focus{border-color:#3a6090}
-  #ask-btn{background:#2ecc71;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .15s}
-  #ask-btn:hover{background:#27ae60}
-  #ask-btn:disabled{background:#555;cursor:default}
-  #status{font-size:10px;color:#6688aa;margin-top:4px;min-height:12px;text-align:center}
+  #question:focus{border-color:#3a90c0;box-shadow:0 0 0 3px rgba(58,144,192,0.15)}
+  #ask-btn{
+    background:#2ecc71;color:#fff;border:none;border-radius:12px;
+    padding:12px 18px;font-family:'Courier New',monospace;
+    font-size:15px;font-weight:bold;cursor:pointer;white-space:nowrap;
+    transition:background .15s;-webkit-tap-highlight-color:transparent;
+  }
+  #ask-btn:active{background:#27ae60;transform:scale(0.97)}
+  #ask-btn:disabled{background:#444;cursor:default}
+  #status{font-size:11px;color:#6688aa;margin-top:5px;min-height:14px;text-align:center}
   #status.err{color:#e74c3c}
   #status.ok{color:#2ecc71}
-  /* LOADER */
   #loader{position:fixed;inset:0;background:#0d1b2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.8s ease}
   #loader.fade-out{opacity:0;pointer-events:none}
   #loader-keith{font-size:64px;font-weight:bold;color:#f39c12;letter-spacing:6px;opacity:0;transform:translateY(20px);transition:opacity 0.7s ease,transform 0.7s ease}
@@ -47,23 +61,22 @@
   #loader-sub.show{opacity:1;transform:translateY(0)}
   #loader-bar{margin-top:40px;width:160px;height:3px;background:#1e3050;border-radius:2px;overflow:hidden}
   #loader-fill{height:100%;width:0%;background:#f39c12;border-radius:2px;transition:width 2.8s cubic-bezier(.4,0,.2,1)}
-  /* QUIZ */
-  #quiz-overlay{display:none;position:fixed;inset:0;background:rgba(5,0,0,0.94);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+  #quiz-overlay{display:none;position:fixed;inset:0;background:rgba(5,0,0,0.96);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #quiz-overlay.active{display:flex}
   #quiz-title{color:#ff2222;font-size:20px;font-weight:bold;letter-spacing:2px;margin-bottom:4px;text-align:center}
   #quiz-subtitle{color:#ff8888;font-size:11px;margin-bottom:16px;text-align:center}
   #quiz-q{color:#fff;font-size:15px;line-height:1.6;margin-bottom:14px;text-align:center;max-width:480px}
-  #quiz-timer-wrap{width:100%;max-width:400px;height:6px;background:#330000;border-radius:3px;margin-bottom:16px;overflow:hidden}
-  #quiz-timer-bar{height:100%;width:100%;background:#ff2222;border-radius:3px;transition:width 1s linear}
-  #quiz-options{display:flex;flex-direction:column;gap:9px;width:100%;max-width:400px}
-  .quiz-opt{background:#1a0000;border:1.5px solid #550000;color:#ffcccc;border-radius:8px;padding:11px 16px;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;transition:all .15s;text-align:left}
-  .quiz-opt:hover{background:#330000;border-color:#ff2222;color:#fff}
+  #quiz-timer-wrap{width:100%;max-width:400px;height:7px;background:#330000;border-radius:4px;margin-bottom:16px;overflow:hidden}
+  #quiz-timer-bar{height:100%;width:100%;background:#ff2222;border-radius:4px;transition:width 1s linear}
+  #quiz-options{display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px}
+  .quiz-opt{background:#1a0000;border:1.5px solid #550000;color:#ffcccc;border-radius:10px;padding:13px 16px;font-family:'Courier New',monospace;font-size:14px;cursor:pointer;transition:all .15s;text-align:left;-webkit-tap-highlight-color:transparent}
+  .quiz-opt:active{background:#330000;border-color:#ff2222;color:#fff}
   .quiz-opt.correct{background:#003300;border-color:#00cc44;color:#aaffaa}
   .quiz-opt.wrong{background:#330000;border-color:#ff2222;color:#ff8888;animation:shake .3s}
   #quiz-feedback{margin-top:12px;font-size:13px;min-height:20px;text-align:center}
   #quiz-score{color:#f39c12;font-size:12px;margin-top:6px;text-align:center}
-  #quiz-next-btn{margin-top:12px;background:#cc0000;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;display:none}
-  #quiz-next-btn:hover{background:#ff0000}
+  #quiz-next-btn{margin-top:14px;background:#cc0000;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;cursor:pointer;display:none;-webkit-tap-highlight-color:transparent}
+  #quiz-next-btn:active{background:#ff0000}
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
   @keyframes spinStar{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 </style>
@@ -685,14 +698,11 @@ function drawThinking(c,cx,cy,s){
 
 // ── BUBBLE ────────────────────────────────────────────────────────────────
 function drawBubble(c,cx,cy,s){
-  // Position bubble top-left of Keith so it doesn't clip off screen
-  const fontSize=15;
-  const padding=14;
-  const maxLineW=Math.min(W*0.52,280);
+  const fontSize=13;
+  const padding=12;
+  const maxLineW=Math.min(W*0.70,300);
 
   c.font=`bold ${fontSize}px Arial, sans-serif`;
-
-  // Word wrap
   const words=bubble.split(' '),lines=[];
   let line='';
   words.forEach(w=>{
@@ -702,38 +712,39 @@ function drawBubble(c,cx,cy,s){
   });
   if(line)lines.push(line);
 
-  const lh=22,bh=lines.length*lh+padding*2,bw=maxLineW;
+  const lh=19,bh=lines.length*lh+padding*2,bw=maxLineW;
 
-  // Place bubble: try top-right of Keith, clamp to screen
-  let rx=cx+55*s, ry=cy-140*s;
-  if(rx+bw>W-8)rx=W-bw-8;
-  if(rx<8)rx=8;
-  if(ry<8)ry=8;
-  if(ry+bh>H*0.85)ry=H*0.85-bh;
+  // Place bubble ABOVE Keith's head, horizontally centred on screen
+  const headTop = cy - 80*s;
+  let ry = headTop - bh - 18;
+  if(ry < 8) ry = 8;
+  let rx = (W - bw) / 2;
+  if(rx < 8) rx = 8;
+  if(rx+bw > W-8) rx = W-bw-8;
 
   const bbg=isDevil?'#1a0000':'#ffffff';
-  const bbd=isDevil?'#ff2200':'#222222';
+  const bbd=isDevil?'#ff2200':'#1a1a1a';
   const btx=isDevil?'#ff9999':'#111111';
 
-  // Drop shadow
-  c.shadowColor='rgba(0,0,0,0.35)';c.shadowBlur=10;c.shadowOffsetX=2;c.shadowOffsetY=2;
-  c.fillStyle=bbg;rr(c,rx,ry,bw,bh,12);c.fill();
+  // Shadow
+  c.shadowColor='rgba(0,0,0,0.4)';c.shadowBlur=14;c.shadowOffsetX=0;c.shadowOffsetY=4;
+  c.fillStyle=bbg;rr(c,rx,ry,bw,bh,14);c.fill();
   c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetX=0;c.shadowOffsetY=0;
+  c.strokeStyle=bbd;c.lineWidth=2;rr(c,rx,ry,bw,bh,14);c.stroke();
 
-  c.strokeStyle=bbd;c.lineWidth=2.5;rr(c,rx,ry,bw,bh,12);c.stroke();
+  // Tail points straight down to Keith head centre
+  const tailX=Math.max(rx+20,Math.min(cx,rx+bw-20));
+  c.beginPath();
+  c.moveTo(tailX-9,ry+bh);
+  c.lineTo(tailX+9,ry+bh);
+  c.lineTo(cx, headTop-4);
+  c.closePath();
+  c.fillStyle=bbg;c.fill();
+  c.beginPath();c.moveTo(tailX-9,ry+bh);c.lineTo(cx,headTop-4);c.lineTo(tailX+9,ry+bh);
+  c.strokeStyle=bbd;c.lineWidth=2;c.stroke();
+  c.beginPath();c.moveTo(tailX-9,ry+bh+1);c.lineTo(tailX+9,ry+bh+1);
+  c.strokeStyle=bbg;c.lineWidth=3;c.stroke();
 
-  // Tail pointing toward Keith
-  const tx=Math.max(rx+20,Math.min(rx+bw-20,cx));
-  const tailBottom=ry+bh;
-  c.beginPath();c.moveTo(tx-10,tailBottom);c.lineTo(tx+10,tailBottom);c.lineTo(cx,cy-30*s);
-  c.closePath();c.fillStyle=bbg;c.fill();
-  c.beginPath();c.moveTo(tx-10,tailBottom);c.lineTo(cx,cy-30*s);c.lineTo(tx+10,tailBottom);
-  c.strokeStyle=bbd;c.lineWidth=2.5;c.stroke();
-  // Cover seam
-  c.beginPath();c.moveTo(tx-10,tailBottom+1);c.lineTo(tx+10,tailBottom+1);
-  c.strokeStyle=bbg;c.lineWidth=4;c.stroke();
-
-  // Text
   c.fillStyle=btx;c.textAlign='left';
   c.font=`bold ${fontSize}px Arial, sans-serif`;
   lines.forEach((ln,i)=>c.fillText(ln,rx+padding,ry+padding+fontSize+i*lh));
