@@ -27,11 +27,7 @@
   canvas{display:block;width:100%;height:100%;position:relative;z-index:1;background:transparent}
   #bottom{background:#0a1520;padding:8px 14px 12px;border-top:1px solid #1e3050;flex-shrink:0}
   #title{text-align:center;color:#f39c12;font-size:13px;font-weight:bold;letter-spacing:2px;margin-bottom:6px}
-  #setup-banner{background:#1a0a00;border:1px solid #cc4400;border-radius:8px;padding:9px 12px;margin-bottom:7px;font-size:11px;color:#ffaa66;line-height:1.7}
-  #setup-banner a{color:#f39c12}
-  #key-input{width:100%;margin-top:5px;background:#0d1b2a;color:#e0f0ff;border:1px solid #cc4400;border-radius:6px;padding:6px 10px;font-family:'Courier New',monospace;font-size:12px;outline:none}
-  #key-input:focus{border-color:#f39c12}
-  #save-key-btn{margin-top:5px;background:#f39c12;color:#000;border:none;border-radius:6px;padding:5px 14px;font-family:'Courier New',monospace;font-size:11px;font-weight:bold;cursor:pointer}
+
   #input-row{display:flex;gap:8px;align-items:center}
   #question{flex:1;background:#1e2d3d;color:#e0f0ff;border:1px solid #2a4060;border-radius:8px;padding:9px 12px;font-family:'Courier New',monospace;font-size:13px;outline:none;caret-color:#e0f0ff}
   #question::placeholder{color:#4a6080}
@@ -99,11 +95,7 @@
 </div>
 <div id="bottom">
   <div id="title">⚗ KEITH GPT ⚗</div>
-  <div id="setup-banner">
-    🔑 Free key at <a href="https://console.groq.com" target="_blank">console.groq.com</a> — paste below:
-    <input type="password" id="key-input" placeholder="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" autocomplete="off">
-    <button id="save-key-btn" onclick="saveKey()">Save Key ✓</button>
-  </div>
+
   <div id="input-row">
     <input id="question" type="text" placeholder="Ask Keith anything..." maxlength="300">
     <button id="ask-btn" onclick="ask()">ASK →</button>
@@ -125,15 +117,8 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 
 // ── KEY ───────────────────────────────────────────────────────────────────
-let apiKey=localStorage.getItem('keith_groq_key')||'';
-if(apiKey)document.getElementById('setup-banner').style.display='none';
-function saveKey(){
-  const v=document.getElementById('key-input').value.trim();
-  if(!v){setStatus('Paste your key first!','err');return;}
-  apiKey=v;localStorage.setItem('keith_groq_key',v);
-  document.getElementById('setup-banner').style.display='none';
-  setStatus('Key saved!','ok');
-}
+// ── PROXY URL — set this to your Cloudflare Worker URL ──────────────────
+const PROXY_URL = 'https://super-heart-37c5.jadelady1912.workers.dev/';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let bubble='',thinking=false,dots=0;
@@ -151,9 +136,9 @@ function getOpener(){const o=useMyMan?'My man,':'Oh word?';useMyMan=!useMyMan;re
 
 // ── GROQ ──────────────────────────────────────────────────────────────────
 async function groqChat(messages,maxTokens=180){
-  const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+  const res=await fetch(PROXY_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'llama-3.3-70b-versatile',messages,max_tokens:maxTokens,temperature:0.92})
   });
   if(!res.ok){
@@ -211,7 +196,6 @@ document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='E
 async function ask(){
   const q=document.getElementById('question').value.trim();
   if(!q)return;
-  if(!apiKey){setStatus('⚠ Save your Groq key above first!','err');return;}
   document.getElementById('question').value='';
   document.getElementById('ask-btn').disabled=true;
   bubble='';thinking=true;targetScale=1.45;
@@ -228,7 +212,7 @@ async function ask(){
     const msg=e.message||String(e);
     let hint=msg;
     if(msg.includes('Failed to fetch')||msg.includes('NetworkError'))hint='Network blocked — try a hotspot.';
-    else if(msg.includes('401'))hint='Bad API key — check console.groq.com.';
+    else if(msg.includes('401'))hint='Server auth error — contact the developer.';
     else if(msg.includes('429'))hint='Rate limited — wait a sec.';
     bubble='Oh word? '+hint; setStatus('❌ '+hint,'err');
   }
