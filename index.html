@@ -3,90 +3,204 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Keith GPT</title>
-
-<!-- PWA -->
+<title>Keith 2.0</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d1b2a">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Keith GPT">
+<meta name="apple-mobile-web-app-title" content="Keith 2.0">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="apple-touch-startup-image" href="icon-512.png">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-  #scene-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
-  #israel-overlay{display:none;position:absolute;inset:0;z-index:0;flex-direction:column;align-items:center;justify-content:center;background:#fff;pointer-events:none}
-  #israel-overlay.active{display:flex}
-  #israel-stripes-top{position:absolute;top:0;left:0;right:0;height:22%;background:#0038b8}
-  #israel-stripes-bot{position:absolute;bottom:0;left:0;right:0;height:22%;background:#0038b8}
-  #israel-star{font-size:110px;z-index:1;animation:spinStar 1s linear infinite}
-  #israel-text{z-index:1;color:#0038b8;font-size:20px;font-weight:bold;margin-top:12px;letter-spacing:3px}
-  canvas{display:block;width:100%;height:100%;position:relative;z-index:1;background:transparent}
-  #bottom{
-    background:#0a1520;
-    padding:10px 16px calc(14px + env(safe-area-inset-bottom)) 16px;
-    padding-left:calc(16px + env(safe-area-inset-left));
-    padding-right:calc(16px + env(safe-area-inset-right));
-    border-top:2px solid #1e3050;flex-shrink:0;
-  }
-  #title{text-align:center;color:#f39c12;font-size:14px;font-weight:bold;letter-spacing:3px;margin-bottom:8px}
-  #input-row{display:flex;gap:10px;align-items:center}
-  #question{
-    flex:1;background:#1e2d3d;color:#e0f0ff;
-    border:1.5px solid #2a4060;border-radius:12px;
-    padding:12px 14px;font-family:'Courier New',monospace;
-    font-size:15px;outline:none;caret-color:#e0f0ff;-webkit-appearance:none;
-  }
-  #question::placeholder{color:#4a6080}
-  #question:focus{border-color:#3a90c0;box-shadow:0 0 0 3px rgba(58,144,192,0.15)}
-  #ask-btn{
-    background:#2ecc71;color:#fff;border:none;border-radius:12px;
-    padding:12px 18px;font-family:'Courier New',monospace;
-    font-size:15px;font-weight:bold;cursor:pointer;white-space:nowrap;
-    transition:background .15s;-webkit-tap-highlight-color:transparent;
-  }
-  #ask-btn:active{background:#27ae60;transform:scale(0.97)}
-  #ask-btn:disabled{background:#444;cursor:default}
-  #status{font-size:11px;color:#6688aa;margin-top:5px;min-height:14px;text-align:center}
-  #status.err{color:#e74c3c}
-  #status.ok{color:#2ecc71}
-  #loader{position:fixed;inset:0;background:#0d1b2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.8s ease}
-  #loader.fade-out{opacity:0;pointer-events:none}
-  #loader-keith{font-size:64px;font-weight:bold;color:#f39c12;letter-spacing:6px;opacity:0;transform:translateY(20px);transition:opacity 0.7s ease,transform 0.7s ease}
-  #loader-keith.show{opacity:1;transform:translateY(0)}
-  #loader-sub{font-size:22px;color:#2ecc71;letter-spacing:3px;margin-top:14px;opacity:0;transform:translateY(10px);transition:opacity 0.7s ease 0.5s,transform 0.7s ease 0.5s}
-  #loader-sub.show{opacity:1;transform:translateY(0)}
-  #loader-bar{margin-top:40px;width:160px;height:3px;background:#1e3050;border-radius:2px;overflow:hidden}
-  #loader-fill{height:100%;width:0%;background:#f39c12;border-radius:2px;transition:width 2.8s cubic-bezier(.4,0,.2,1)}
-  #quiz-overlay{display:none;position:fixed;inset:0;background:rgba(5,0,0,0.96);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
-  #quiz-overlay.active{display:flex}
-  #quiz-title{color:#ff2222;font-size:20px;font-weight:bold;letter-spacing:2px;margin-bottom:4px;text-align:center}
-  #quiz-subtitle{color:#ff8888;font-size:11px;margin-bottom:16px;text-align:center}
-  #quiz-q{color:#fff;font-size:15px;line-height:1.6;margin-bottom:14px;text-align:center;max-width:480px}
-  #quiz-timer-wrap{width:100%;max-width:400px;height:7px;background:#330000;border-radius:4px;margin-bottom:16px;overflow:hidden}
-  #quiz-timer-bar{height:100%;width:100%;background:#ff2222;border-radius:4px;transition:width 1s linear}
-  #quiz-options{display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px}
-  .quiz-opt{background:#1a0000;border:1.5px solid #550000;color:#ffcccc;border-radius:10px;padding:13px 16px;font-family:'Courier New',monospace;font-size:14px;cursor:pointer;transition:all .15s;text-align:left;-webkit-tap-highlight-color:transparent}
-  .quiz-opt:active{background:#330000;border-color:#ff2222;color:#fff}
-  .quiz-opt.correct{background:#003300;border-color:#00cc44;color:#aaffaa}
-  .quiz-opt.wrong{background:#330000;border-color:#ff2222;color:#ff8888;animation:shake .3s}
-  #quiz-feedback{margin-top:12px;font-size:13px;min-height:20px;text-align:center}
-  #quiz-score{color:#f39c12;font-size:12px;margin-top:6px;text-align:center}
-  #quiz-next-btn{margin-top:14px;background:#cc0000;color:#fff;border:none;border-radius:10px;padding:13px 32px;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;cursor:pointer;display:none;-webkit-tap-highlight-color:transparent}
-  #quiz-next-btn:active{background:#ff0000}
-  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-  @keyframes spinStar{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── SCREENS ── */
+.screen{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.screen.active{display:flex}
+
+/* ── HOME ── */
+#screen-home{background:linear-gradient(160deg,#0d1b2a 0%,#1a2f1a 100%)}
+#home-title{font-size:48px;font-weight:bold;color:#f39c12;letter-spacing:4px;text-align:center;margin-bottom:4px;text-shadow:0 0 30px rgba(243,156,18,0.5)}
+#home-sub{font-size:13px;color:#2ecc71;letter-spacing:3px;margin-bottom:28px}
+#home-canvas{border-radius:50%;border:3px solid #f39c12;box-shadow:0 0 24px rgba(243,156,18,0.4);margin-bottom:28px;background:#1a1a0a}
+.home-btn{width:100%;max-width:280px;padding:14px;border:none;border-radius:12px;font-family:'Courier New',monospace;font-size:15px;font-weight:bold;cursor:pointer;margin:6px 0;transition:all .15s}
+#btn-login{background:#2ecc71;color:#fff}
+#btn-signup{background:transparent;color:#2ecc71;border:2px solid #2ecc71}
+
+/* ── AUTH ── */
+#screen-auth{background:#0d1b2a}
+.auth-title{font-size:22px;font-weight:bold;color:#f39c12;margin-bottom:24px;text-align:center}
+.auth-input{width:100%;max-width:300px;background:#1e2d3d;color:#e0f0ff;border:1.5px solid #2a4060;border-radius:10px;padding:12px 14px;font-family:'Courier New',monospace;font-size:14px;outline:none;margin:6px 0;-webkit-appearance:none}
+.auth-input:focus{border-color:#3a90c0}
+.auth-btn{width:100%;max-width:300px;padding:13px;border:none;border-radius:10px;font-family:'Courier New',monospace;font-size:15px;font-weight:bold;cursor:pointer;margin-top:10px;background:#2ecc71;color:#fff}
+.auth-link{color:#6688aa;font-size:12px;margin-top:14px;cursor:pointer;text-decoration:underline}
+.auth-err{color:#e74c3c;font-size:11px;margin-top:8px;min-height:16px;text-align:center}
+
+/* ── MAIN APP ── */
+#screen-main{padding:0;justify-content:flex-start;background:#0d1b2a}
+#main-header{width:100%;background:#0a1520;border-bottom:2px solid #1e3050;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#header-user{color:#e0f0ff;font-size:12px}
+#header-gb{color:#f39c12;font-size:13px;font-weight:bold}
+#header-menu{display:flex;gap:8px}
+.hdr-btn{background:#1e3050;color:#e0f0ff;border:none;border-radius:8px;padding:6px 10px;font-family:'Courier New',monospace;font-size:10px;cursor:pointer}
+.hdr-btn:active{background:#2a4060}
+#scene-wrap{flex:1;position:relative;overflow:hidden;min-height:0;width:100%}
+#israel-overlay{display:none;position:absolute;inset:0;z-index:0;flex-direction:column;align-items:center;justify-content:center;background:#fff;pointer-events:none}
+#israel-overlay.active{display:flex}
+#israel-stripes-top{position:absolute;top:0;left:0;right:0;height:22%;background:#0038b8}
+#israel-stripes-bot{position:absolute;bottom:0;left:0;right:0;height:22%;background:#0038b8}
+#israel-star{font-size:90px;z-index:1;animation:spinStar 1s linear infinite}
+#israel-text{z-index:1;color:#0038b8;font-size:18px;font-weight:bold;margin-top:10px;letter-spacing:3px}
+#main-canvas{display:block;width:100%;height:100%;position:relative;z-index:1;background:transparent}
+#bottom{background:#0a1520;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:2px solid #1e3050;flex-shrink:0;width:100%}
+#bottom-title{text-align:center;color:#f39c12;font-size:12px;font-weight:bold;letter-spacing:2px;margin-bottom:6px}
+#input-row{display:flex;gap:8px;align-items:center}
+#question{flex:1;background:#1e2d3d;color:#e0f0ff;border:1.5px solid #2a4060;border-radius:10px;padding:11px 13px;font-family:'Courier New',monospace;font-size:14px;outline:none;caret-color:#e0f0ff;-webkit-appearance:none}
+#question::placeholder{color:#4a6080}
+#question:focus{border-color:#3a90c0}
+#ask-btn{background:#2ecc71;color:#fff;border:none;border-radius:10px;padding:11px 16px;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;cursor:pointer;white-space:nowrap}
+#ask-btn:disabled{background:#444}
+#status{font-size:10px;color:#6688aa;margin-top:4px;min-height:12px;text-align:center}
+#status.err{color:#e74c3c}
+#status.ok{color:#2ecc71}
+
+/* ── QUIZ OVERLAY ── */
+#quiz-overlay{display:none;position:fixed;inset:0;background:rgba(5,0,0,0.95);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+#quiz-overlay.active{display:flex}
+#quiz-title{color:#ff2222;font-size:18px;font-weight:bold;letter-spacing:2px;margin-bottom:4px;text-align:center}
+#quiz-subtitle{color:#ff8888;font-size:11px;margin-bottom:14px;text-align:center}
+#quiz-q{color:#fff;font-size:14px;line-height:1.6;margin-bottom:12px;text-align:center;max-width:400px}
+#quiz-timer-wrap{width:100%;max-width:360px;height:6px;background:#330000;border-radius:3px;margin-bottom:14px;overflow:hidden}
+#quiz-timer-bar{height:100%;width:100%;background:#ff2222;border-radius:3px;transition:width 1s linear}
+#quiz-options{display:flex;flex-direction:column;gap:8px;width:100%;max-width:360px}
+.quiz-opt{background:#1a0000;border:1.5px solid #550000;color:#ffcccc;border-radius:10px;padding:12px 14px;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;text-align:left}
+.quiz-opt:active{background:#330000}
+.quiz-opt.correct{background:#003300;border-color:#00cc44;color:#aaffaa}
+.quiz-opt.wrong{background:#330000;border-color:#ff2222;color:#ff8888;animation:shake .3s}
+#quiz-feedback{margin-top:10px;font-size:12px;min-height:18px;text-align:center}
+#quiz-score{color:#f39c12;font-size:11px;margin-top:4px;text-align:center}
+#quiz-next-btn{margin-top:12px;background:#cc0000;color:#fff;border:none;border-radius:10px;padding:12px 26px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;display:none}
+
+/* ── TREADMILL GAME ── */
+#screen-treadmill{background:#0d1b2a;padding:0;justify-content:flex-start}
+#tread-header{width:100%;background:#0a1520;border-bottom:2px solid #f39c12;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#tread-title{color:#f39c12;font-size:14px;font-weight:bold;letter-spacing:2px}
+#tread-level{color:#fff;font-size:13px}#tread-level span{color:#f39c12;font-weight:bold}
+#tread-canvas{flex:1;width:100%;display:block}
+#tread-quiz-area{width:100%;background:#0a1520;border-top:2px solid #1e3050;padding:10px 16px calc(10px + env(safe-area-inset-bottom));flex-shrink:0}
+#tread-q{color:#fff;font-size:13px;margin-bottom:8px;text-align:center;min-height:20px}
+#tread-opts{display:flex;flex-direction:column;gap:6px}
+.tread-opt{background:#1e2d3d;border:1.5px solid #2a4060;color:#e0f0ff;border-radius:8px;padding:9px 12px;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;text-align:left}
+.tread-opt.correct{background:#003300;border-color:#00cc44;color:#aaffaa}
+.tread-opt.wrong{background:#330000;border-color:#ff2222;color:#ff8888}
+#tread-result{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;z-index:10}
+#tread-result.active{display:flex}
+#tread-result-title{font-size:28px;font-weight:bold;color:#f39c12;margin-bottom:12px;text-align:center}
+#tread-result-msg{color:#e0f0ff;font-size:14px;text-align:center;margin-bottom:20px;line-height:1.6}
+#tread-result-gb{font-size:20px;color:#2ecc71;font-weight:bold;margin-bottom:20px}
+.result-btn{background:#2ecc71;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;cursor:pointer;margin:4px}
+
+/* ── WHACK ── */
+#screen-whack{background:#0d2a0d;padding:0;justify-content:flex-start}
+#whack-header{width:100%;background:#0a1a0a;border-bottom:2px solid #2ecc71;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#whack-title{color:#2ecc71;font-size:14px;font-weight:bold;letter-spacing:2px}
+#whack-stats{display:flex;gap:12px;font-size:12px}
+#whack-timer{color:#f39c12;font-weight:bold}
+#whack-hits{color:#e0f0ff}
+#whack-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:10px;padding:12px;width:100%}
+.whack-hole{background:#1a0d00;border-radius:50%;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;position:relative;cursor:pointer;border:3px solid #3d2000;transition:transform .1s}
+.whack-hole:active{transform:scale(0.95)}
+.whack-keith-wrap{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;transform:translateY(100%);transition:transform 0.18s}
+.whack-keith-wrap.up{transform:translateY(10%)}
+.whack-keith-wrap canvas{display:block}
+#whack-bottom{width:100%;background:#0a1a0a;border-top:2px solid #1a3a1a;padding:10px 16px calc(10px + env(safe-area-inset-bottom));flex-shrink:0;text-align:center}
+#whack-result{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;z-index:10}
+#whack-result.active{display:flex}
+
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;background:#0d1b2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.8s ease}
+#loader.fade-out{opacity:0;pointer-events:none}
+#loader-keith{font-size:56px;font-weight:bold;color:#f39c12;letter-spacing:6px;opacity:0;transform:translateY(20px);transition:opacity 0.7s ease,transform 0.7s ease}
+#loader-keith.show{opacity:1;transform:translateY(0)}
+#loader-sub{font-size:16px;color:#2ecc71;letter-spacing:3px;margin-top:10px;opacity:0;transition:opacity 0.7s ease 0.5s}
+#loader-sub.show{opacity:1}
+#loader-bar{margin-top:36px;width:160px;height:3px;background:#1e3050;border-radius:2px;overflow:hidden}
+#loader-fill{height:100%;width:0%;background:#f39c12;border-radius:2px;transition:width 2.8s cubic-bezier(.4,0,.2,1)}
+
+/* ── MENU MODAL ── */
+#menu-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;align-items:center;justify-content:center}
+#menu-modal.active{display:flex}
+#menu-box{background:#0a1520;border:2px solid #1e3050;border-radius:16px;padding:24px;width:90%;max-width:300px;display:flex;flex-direction:column;gap:10px}
+#menu-box h2{color:#f39c12;font-size:16px;text-align:center;margin-bottom:4px}
+.menu-item{background:#1e2d3d;color:#e0f0ff;border:none;border-radius:10px;padding:13px;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px}
+.menu-item:active{background:#2a3d50}
+#menu-close{background:transparent;color:#6688aa;border:none;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;margin-top:4px;text-align:center}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes spinStar{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes crash{0%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-60px) rotate(-20deg)}100%{transform:translateY(200px) rotate(45deg)}}
 </style>
 </head>
 <body>
+
+<!-- LOADER -->
 <div id="loader">
-  <div id="loader-keith">KEITH</div>
+  <div id="loader-keith">KEITH 2.0</div>
   <div id="loader-sub">Oh word?</div>
   <div id="loader-bar"><div id="loader-fill"></div></div>
 </div>
+
+<!-- HOME SCREEN -->
+<div class="screen" id="screen-home">
+  <div id="home-title">KEITH 2.0</div>
+  <div id="home-sub">⚗ YOUR AI SCIENCE TEACHER ⚗</div>
+  <canvas id="home-canvas" width="160" height="160"></canvas>
+  <button class="home-btn" id="btn-login">LOG IN</button>
+  <button class="home-btn" id="btn-signup">SIGN UP</button>
+</div>
+
+<!-- AUTH SCREEN -->
+<div class="screen" id="screen-auth">
+  <div class="auth-title" id="auth-title">CREATE ACCOUNT</div>
+  <input class="auth-input" id="auth-user" placeholder="Username" autocomplete="off" autocapitalize="off">
+  <input class="auth-input" id="auth-pass" type="password" placeholder="Password">
+  <button class="auth-btn" id="auth-submit">SIGN UP</button>
+  <div class="auth-err" id="auth-err"></div>
+  <div class="auth-link" id="auth-switch">Already have an account? Log in</div>
+  <div class="auth-link" id="auth-back" style="color:#f39c12">← Back</div>
+</div>
+
+<!-- MAIN APP -->
+<div class="screen" id="screen-main">
+  <div id="main-header">
+    <div>
+      <div id="header-user">👤 <span id="hdr-username"></span></div>
+    </div>
+    <div id="header-gb">💵 <span id="hdr-gb">0</span> greenbacks</div>
+    <div id="header-menu">
+      <button class="hdr-btn" onclick="openMenu()">☰ Menu</button>
+    </div>
+  </div>
+  <div id="scene-wrap">
+    <div id="israel-overlay">
+      <div id="israel-stripes-top"></div>
+      <div id="israel-stripes-bot"></div>
+      <div id="israel-star">✡</div>
+      <div id="israel-text">KEITH WORKS FOR YAHU 🇮🇱</div>
+    </div>
+    <canvas id="main-canvas"></canvas>
+  </div>
+  <div id="bottom">
+    <div id="bottom-title">⚗ KEITH GPT ⚗ <span style="color:#6688aa;font-size:10px">(1 💵 per question)</span></div>
+    <div id="input-row">
+      <input id="question" type="text" placeholder="Ask Keith anything..." maxlength="300">
+      <button id="ask-btn" onclick="ask()">ASK →</button>
+    </div>
+    <div id="status"></div>
+  </div>
+</div>
+
+<!-- QUIZ OVERLAY (devil mode) -->
 <div id="quiz-overlay">
   <div id="quiz-title">😈 TROY HAS ARRIVED 😈</div>
   <div id="quiz-subtitle">Troy wants to know if you were paying attention...</div>
@@ -97,257 +211,437 @@
   <div id="quiz-score"></div>
   <button id="quiz-next-btn" onclick="quizNext()">NEXT →</button>
 </div>
-<div id="scene-wrap">
-  <div id="israel-overlay">
-    <div id="israel-stripes-top"></div>
-    <div id="israel-stripes-bot"></div>
-    <div id="israel-star">✡</div>
-    <div id="israel-text">KEITH WORKS FOR YAHU 🇮🇱</div>
-  </div>
-  <canvas id="c"></canvas>
-</div>
-<div id="bottom">
-  <div id="title">⚗ KEITH GPT ⚗</div>
 
-  <div id="input-row">
-    <input id="question" type="text" placeholder="Ask Keith anything..." maxlength="300">
-    <button id="ask-btn" onclick="ask()">ASK →</button>
+<!-- TREADMILL GAME -->
+<div class="screen" id="screen-treadmill" style="position:relative">
+  <div id="tread-header">
+    <div id="tread-title">🏃 TREADMILL</div>
+    <div id="tread-level">LEVEL <span id="tread-lvl-num">1</span> / 12</div>
+    <div style="color:#2ecc71;font-size:12px">💵 <span id="tread-gb-preview">0</span></div>
   </div>
-  <div id="status"></div>
+  <canvas id="tread-canvas"></canvas>
+  <div id="tread-quiz-area">
+    <div id="tread-q">Get ready...</div>
+    <div id="tread-opts"></div>
+  </div>
+  <div id="tread-result">
+    <div id="tread-result-title"></div>
+    <div id="tread-result-msg"></div>
+    <div id="tread-result-gb"></div>
+    <button class="result-btn" onclick="endTreadmill()">← Back to Menu</button>
+  </div>
+</div>
+
+<!-- WHACK-A-KEITH -->
+<div class="screen" id="screen-whack" style="position:relative">
+  <div id="whack-header">
+    <div id="whack-title">🔨 WHACK-A-KEITH</div>
+    <div id="whack-stats">
+      <div id="whack-timer">⏱ 30</div>
+      <div id="whack-hits">Hits: <span id="whack-hit-count">0</span></div>
+    </div>
+  </div>
+  <div id="whack-grid"></div>
+  <div id="whack-bottom">
+    <div style="color:#6688aa;font-size:11px">Whack Keith to earn 💵 greenbacks!</div>
+  </div>
+  <div id="whack-result">
+    <div id="tread-result-title" style="color:#2ecc71"></div>
+    <div id="whack-result-msg" style="color:#e0f0ff;font-size:14px;text-align:center;margin:12px 0;line-height:1.6"></div>
+    <div id="whack-result-gb" style="font-size:20px;color:#f39c12;font-weight:bold;margin-bottom:20px"></div>
+    <button class="result-btn" onclick="endWhack()">← Back to Menu</button>
+  </div>
+</div>
+
+<!-- MENU MODAL -->
+<div id="menu-modal">
+  <div id="menu-box">
+    <h2>⚗ KEITH 2.0 MENU</h2>
+    <button class="menu-item" onclick="closeMenuGoTo('main')">🏫 Ask Keith (1 💵)</button>
+    <button class="menu-item" onclick="closeMenuGoTo('treadmill')">🏃 Treadmill Game</button>
+    <button class="menu-item" onclick="closeMenuGoTo('whack')">🔨 Whack-a-Keith</button>
+    <button class="menu-item" onclick="closeMenuGoTo('logout')" style="color:#e74c3c">🚪 Log Out</button>
+    <button id="menu-close" onclick="closeMenu()">Close</button>
+  </div>
 </div>
 
 <script>
-// ── LOADER ────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+// PROXY / API
+// ═══════════════════════════════════════════════════════
+const PROXY_URL = 'https://super-heart-37c5.jadelady1912.workers.dev/';
+
+async function groqChat(messages, maxTokens=200){
+  const res = await fetch(PROXY_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages,max_tokens:maxTokens,temperature:0.9})
+  });
+  if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j?.error?.message||res.statusText);}
+  return (await res.json()).choices[0].message.content.trim();
+}
+
+// ═══════════════════════════════════════════════════════
+// USER / ACCOUNTS
+// ═══════════════════════════════════════════════════════
+let currentUser = null;
+
+function getUsers(){ return JSON.parse(localStorage.getItem('keith_users')||'{}'); }
+function saveUsers(u){ localStorage.setItem('keith_users',JSON.stringify(u)); }
+
+function getUser(name){
+  const u = getUsers();
+  return u[name.toLowerCase()] || null;
+}
+function createUser(name, pass){
+  const u = getUsers();
+  const key = name.toLowerCase();
+  if(u[key]) return false;
+  u[key] = {name, pass, greenbacks:20, history:[]};
+  saveUsers(u); return true;
+}
+function loginUser(name, pass){
+  const u = getUser(name);
+  if(!u || u.pass !== pass) return false;
+  currentUser = u;
+  currentUser.key = name.toLowerCase();
+  return true;
+}
+function saveCurrentUser(){
+  if(!currentUser) return;
+  const u = getUsers();
+  u[currentUser.key] = {name:currentUser.name, pass:currentUser.pass,
+    greenbacks:currentUser.greenbacks, history:currentUser.history||[]};
+  saveUsers(u);
+}
+function addGreenbacks(n){
+  if(!currentUser) return;
+  currentUser.greenbacks = (currentUser.greenbacks||0) + n;
+  saveCurrentUser();
+  updateGBDisplay();
+}
+function spendGreenback(){
+  if(!currentUser || currentUser.greenbacks < 1) return false;
+  currentUser.greenbacks--;
+  saveCurrentUser();
+  updateGBDisplay();
+  return true;
+}
+function updateGBDisplay(){
+  const el = document.getElementById('hdr-gb');
+  if(el && currentUser) el.textContent = currentUser.greenbacks;
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// LOADER
+// ═══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
   const kEl=document.getElementById('loader-keith');
   const sEl=document.getElementById('loader-sub');
   const fEl=document.getElementById('loader-fill');
   const ld=document.getElementById('loader');
-  setTimeout(()=>kEl.classList.add('show'),150);
-  setTimeout(()=>sEl.classList.add('show'),700);
+  setTimeout(()=>kEl.classList.add('show'),200);
+  setTimeout(()=>sEl.classList.add('show'),800);
   setTimeout(()=>fEl.style.width='100%',300);
-  setTimeout(()=>{ld.classList.add('fade-out');setTimeout(()=>ld.style.display='none',850);},3200);
+  setTimeout(()=>{
+    ld.classList.add('fade-out');
+    setTimeout(()=>{
+      ld.style.display='none';
+      drawHomeKeith();
+      // Auto-login if session saved
+      const sess = localStorage.getItem('keith_session');
+      if(sess){
+        const u = getUser(sess);
+        if(u){ currentUser=u; currentUser.key=sess; showScreen('main'); initMain(); return; }
+      }
+      showScreen('home');
+    },850);
+  },3200);
 });
 
-// ── KEY ───────────────────────────────────────────────────────────────────
-// ── PROXY URL — set this to your Cloudflare Worker URL ──────────────────
-const PROXY_URL = 'https://super-heart-37c5.jadelady1912.workers.dev/';
+// ═══════════════════════════════════════════════════════
+// HOME SCREEN — draw Keith face on canvas
+// ═══════════════════════════════════════════════════════
+function drawHomeKeith(){
+  const canvas = document.getElementById('home-canvas');
+  const ctx = canvas.getContext('2d');
+  const W=160,H=160,cx=80,cy=82;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#1a1a0a';
+  ctx.fillRect(0,0,W,H);
+  drawKeithFace(ctx,cx,cy,0.88);
+}
 
-// ── STATE ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+let authMode = 'signup';
+
+document.getElementById('btn-signup').onclick=()=>{ authMode='signup'; setupAuth(); showScreen('auth'); };
+document.getElementById('btn-login').onclick=()=>{ authMode='login'; setupAuth(); showScreen('auth'); };
+document.getElementById('auth-submit').onclick=submitAuth;
+document.getElementById('auth-switch').onclick=toggleAuthMode;
+document.getElementById('auth-back').onclick=()=>showScreen('home');
+document.getElementById('auth-user').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+document.getElementById('auth-pass').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+
+function setupAuth(){
+  const isSignup = authMode==='signup';
+  document.getElementById('auth-title').textContent = isSignup ? 'CREATE ACCOUNT' : 'WELCOME BACK';
+  document.getElementById('auth-submit').textContent = isSignup ? 'SIGN UP' : 'LOG IN';
+  document.getElementById('auth-switch').textContent = isSignup ? 'Already have an account? Log in' : "Don't have an account? Sign up";
+  document.getElementById('auth-err').textContent='';
+  document.getElementById('auth-user').value='';
+  document.getElementById('auth-pass').value='';
+}
+function toggleAuthMode(){
+  authMode = authMode==='signup'?'login':'signup';
+  setupAuth();
+}
+function submitAuth(){
+  const name = document.getElementById('auth-user').value.trim();
+  const pass = document.getElementById('auth-pass').value;
+  const err  = document.getElementById('auth-err');
+  if(!name||!pass){ err.textContent='Fill in both fields.'; return; }
+  if(name.length < 2){ err.textContent='Username too short.'; return; }
+  if(pass.length < 4){ err.textContent='Password must be 4+ chars.'; return; }
+  if(authMode==='signup'){
+    if(!createUser(name,pass)){ err.textContent='Username taken. Try another.'; return; }
+    loginUser(name,pass);
+  } else {
+    if(!loginUser(name,pass)){ err.textContent='Wrong username or password.'; return; }
+  }
+  localStorage.setItem('keith_session', name.toLowerCase());
+  showScreen('main');
+  initMain();
+}
+
+// ═══════════════════════════════════════════════════════
+// MENU
+// ═══════════════════════════════════════════════════════
+function openMenu(){ document.getElementById('menu-modal').classList.add('active'); }
+function closeMenu(){ document.getElementById('menu-modal').classList.remove('active'); }
+function closeMenuGoTo(dest){
+  closeMenu();
+  if(dest==='logout'){ logout(); return; }
+  if(dest==='treadmill'){ startTreadmill(); return; }
+  if(dest==='whack'){ startWhack(); return; }
+  showScreen('main');
+}
+function logout(){
+  currentUser=null;
+  localStorage.removeItem('keith_session');
+  showScreen('home');
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN — classroom scene
+// ═══════════════════════════════════════════════════════
+const mainCanvas = document.getElementById('main-canvas');
+const mctx = mainCanvas.getContext('2d');
+let mW,mH,mDpr=window.devicePixelRatio||1;
+let bobT=0,last=0,kScale=1.0,targetScale=1.0;
 let bubble='',thinking=false,dots=0;
-let kScale=1.0,targetScale=1.0;
-let useMyMan=true;
 let isDevil=false,devilIntensity=0;
-let isAngry=false,angryTimer=0,shake=0;
-let israelMode=false;
-let starOfDavidEyes=false;
-let qHistory=[],questionCount=0;
-let nextQuizAt=randQuizAt();
-function randQuizAt(){return questionCount+Math.floor(Math.random()*6)+5;}
+let isAngry=false,angryTimer=0,shakeAmt=0;
+let israelMode=false,starOfDavidEyes=false;
+let qHistory=[],questionCount=0,nextQuizAt=randQuizAt();
+let useMyMan=true;
+let mainLoopRunning=false;
 
-function getOpener(){const o=useMyMan?'My man,':'Oh word?';useMyMan=!useMyMan;return o;}
+function randQuizAt(){ return questionCount+Math.floor(Math.random()*6)+5; }
+function getOpener(){ const o=useMyMan?'My man,':'Oh word?'; useMyMan=!useMyMan; return o; }
 
-// ── GROQ ──────────────────────────────────────────────────────────────────
-async function groqChat(messages,maxTokens=180){
-  const res=await fetch(PROXY_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages,max_tokens:maxTokens,temperature:0.92})
-  });
-  if(!res.ok){
-    let msg=res.statusText;
-    try{const j=await res.json();msg=j?.error?.message||msg;}catch(_){}
-    throw new Error('Groq '+res.status+': '+msg);
+function initMain(){
+  document.getElementById('hdr-username').textContent = currentUser.name;
+  updateGBDisplay();
+  resizeMain();
+  if(!mainLoopRunning){ mainLoopRunning=true; requestAnimationFrame(mainLoop); }
+  document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
+}
+
+function resizeMain(){
+  const wrap = document.getElementById('scene-wrap');
+  mW=wrap.clientWidth; mH=wrap.clientHeight;
+  mainCanvas.width=mW*mDpr; mainCanvas.height=mH*mDpr;
+  mainCanvas.style.width=mW+'px'; mainCanvas.style.height=mH+'px';
+}
+window.addEventListener('resize',resizeMain);
+
+function mainLoop(ts){
+  const dt=Math.min((ts-last)/1000,0.1); last=ts;
+  bobT+=dt*1.5;
+  kScale+=(targetScale-kScale)*0.12;
+  if(thinking)dots+=dt*3;
+  if(isDevil)devilIntensity=Math.min(1,devilIntensity+dt*0.8);
+  else       devilIntensity=Math.max(0,devilIntensity-dt*1.2);
+  if(angryTimer>0){angryTimer-=dt;if(angryTimer<=0)isAngry=false;}
+  if(shakeAmt>0)shakeAmt*=0.85;
+  drawMain();
+  requestAnimationFrame(mainLoop);
+}
+
+function drawMain(){
+  const c=mctx,p=mDpr;
+  c.setTransform(p,0,0,p,0,0);
+  c.clearRect(0,0,mW,mH);
+  const landscape=mW>mH;
+  const ks=kScale*Math.min(landscape?mH*0.0028:mH*0.0022,mW*0.0018);
+  const keithCX=landscape?mW*0.38:mW*0.5;
+  const deskY=mH*0.77;
+  const keithCY=deskY-110*ks+Math.sin(bobT)*2;
+  const sx=isAngry?(Math.random()-0.5)*shakeAmt:0;
+  const sy=isAngry?(Math.random()-0.5)*shakeAmt*0.5:0;
+  c.translate(sx,sy);
+  if(!israelMode){c.fillStyle='#0d1b2a';c.fillRect(0,0,mW,mH);}
+  drawClassroomBg(c,mW,mH,devilIntensity);
+  drawLabDesk(c,mW,mH);
+  drawKeithFull(c,keithCX,keithCY,ks,devilIntensity,isAngry,starOfDavidEyes);
+  if(thinking)drawThinking(c,keithCX,keithCY,ks,mW);
+  if(bubble)  drawBubble(c,keithCX,keithCY,ks,landscape,mW,mH,bubble,isDevil);
+  if(devilIntensity>0){
+    const g=c.createRadialGradient(mW/2,mH/2,mH*0.2,mW/2,mH/2,mH*0.8);
+    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(180,0,0,${devilIntensity*0.45})`);
+    c.fillStyle=g;c.fillRect(0,0,mW,mH);
   }
-  const j=await res.json();
-  return j.choices[0].message.content.trim();
 }
 
-async function callGroq(question){
-  const opener=getOpener();
-  const lower=question.toLowerCase();
-  if(lower.includes('work for')||lower.includes('who do you work')||lower.includes('employer')||lower.includes('who pays you')||lower.includes('who hired')){
-    const israelText=`${opener} I work for YAHU — Netanyahu has my number, and I answer when he calls. Keith Troy Green does not work for just anybody.`;
-    triggerIsraelMode();
-    speak(israelText);
-    return israelText;
-  }
-
-  // ~40% chance to mention clubbing, ~30% chance for a story
-  const clubRoll=Math.random();
-  const storyRoll=Math.random();
-  let extraInstruction='';
-  if(clubRoll<0.40) extraInstruction+=' Casually work in a reference to your clubbing days — make it feel natural but funny.';
-  if(storyRoll<0.30) extraInstruction+=' Tell a short funny personal story (2 sentences max) related to the topic.';
-
-  const sys=`You are Keith GPT, real name Keith Troy Green — a science teacher who speaks with the calm, unhurried cadence of an older man. Think slow and deliberate, like someone who has been teaching for 35 years and is in absolutely no rush.
-RULES:
-1. Start with EXACTLY "${opener}" — nothing before it, no exceptions.
-2. Write the way an older man naturally talks — measured, thoughtful, a little deliberate. Slightly formal but not stiff. Simple words, no filler, no hype. Not a lot of exclamation points. Like someone who doesn't need to impress anybody.
-3. NO catchphrases, NO old-man clichés, NO slang, NO curse words.
-4. Whenever you mention any element or molecule with HIGH ELECTRONEGATIVITY (fluorine, oxygen, nitrogen, chlorine, etc.), you MUST call it an "electron gangsta." Example: "Fluorine is the biggest electron gangsta on the periodic table — it pulls electrons toward itself harder than anything else."
-5. Keep the ENTIRE response to 2–3 short sentences MAX.
-6. Be genuinely helpful and warm in a quiet, understated way.${extraInstruction}`;
-
-  let text=await groqChat([{role:'system',content:sys},{role:'user',content:question}]);
-  if(!text.startsWith('My man')&&!text.startsWith('Oh word?'))text=opener+' '+text;
-  return text;
-}
-
-// ── ISRAEL MODE ───────────────────────────────────────────────────────────
-function triggerIsraelMode(){
-  israelMode=true; starOfDavidEyes=true;
-  document.getElementById('israel-overlay').classList.add('active');
-  setTimeout(()=>{
-    document.getElementById('israel-overlay').classList.remove('active');
-    israelMode=false; starOfDavidEyes=false;
-  },5000);
-}
-
-// ── ASK ───────────────────────────────────────────────────────────────────
-document.getElementById('question').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
+// ── ASK ──────────────────────────────────────────────
 async function ask(){
   const q=document.getElementById('question').value.trim();
   if(!q)return;
+  if(!currentUser||currentUser.greenbacks<1){
+    setStatus('Not enough greenbacks! Play a game to earn more.','err'); return;
+  }
+  if(!spendGreenback()){ setStatus('Not enough greenbacks!','err'); return; }
   document.getElementById('question').value='';
   document.getElementById('ask-btn').disabled=true;
   bubble='';thinking=true;targetScale=1.35;
   setStatus('Connecting…');
   try{
-    const answer=await callGroq(q);
-    bubble=answer;
-    speak(answer);
-    qHistory.push({q,a:answer});
-    questionCount++;
-    setStatus('✓ Keith spoke!','ok');
-    if(questionCount>=nextQuizAt&&qHistory.length>=3)setTimeout(()=>startDevilMode(),10500);
+    const opener=getOpener();
+    const lower=q.toLowerCase();
+    if(lower.includes('work for')||lower.includes('who do you work')||lower.includes('employer')){
+      const txt=`${opener} I work for YAHU — Netanyahu has my number, and I answer when he calls. Keith Troy Green does not work for just anybody.`;
+      triggerIsraelMode(); bubble=txt; speak(txt);
+    } else {
+      const clubRoll=Math.random(),storyRoll=Math.random();
+      let extra='';
+      if(clubRoll<0.35)extra+=' Briefly reference your former clubbing days naturally.';
+      if(storyRoll<0.28)extra+=' Tell a short funny 1-sentence story about it.';
+      const sys=`You are Keith GPT, real name Keith Troy Green — a science teacher with the calm, unhurried manner of someone who has been teaching 35 years.
+Start with EXACTLY "${opener}". Speak measured, thoughtful, slightly formal but not stiff. NO slang, NO curses.
+If you mention high-electronegativity elements (fluorine, oxygen, nitrogen, chlorine) call them "electron gangsta".
+Keep response to 2-3 sentences max.${extra}`;
+      const text=await groqChat([{role:'system',content:sys},{role:'user',content:q}]);
+      const ans=text.startsWith('My man')||text.startsWith('Oh word?')?text:opener+' '+text;
+      bubble=ans;
+      qHistory.push({q,a:ans}); questionCount++;
+      speak(ans);
+      setStatus('✓ Keith spoke!','ok');
+      if(questionCount>=nextQuizAt&&qHistory.length>=3)setTimeout(()=>startDevilMode(),10000);
+    }
   }catch(e){
-    const msg=e.message||String(e);
-    let hint=msg;
-    if(msg.includes('Failed to fetch')||msg.includes('NetworkError'))hint='Network blocked — try a hotspot.';
-    else if(msg.includes('401'))hint='Server auth error — contact the developer.';
-    else if(msg.includes('429'))hint='Rate limited — wait a sec.';
-    bubble='Oh word? '+hint; setStatus('❌ '+hint,'err');
+    // Refund greenback on error
+    addGreenbacks(1);
+    bubble='Oh word? '+e.message.slice(0,80);
+    setStatus('❌ '+e.message.slice(0,60),'err');
   }
   thinking=false;
   document.getElementById('ask-btn').disabled=false;
   setTimeout(()=>{targetScale=1.0;},9000);
   setTimeout(()=>{bubble='';setStatus('');},12000);
 }
-function setStatus(msg,cls){const el=document.getElementById('status');el.textContent=msg;el.className=cls||'';}
+function setStatus(msg,cls){const el=document.getElementById('status');if(el){el.textContent=msg;el.className=cls||'';}}
 
-// ── SPEECH ────────────────────────────────────────────────────────────────
-let currentUtterance=null;
+// ── SPEECH ──────────────────────────────────────────
 function speak(text){
   if(!window.speechSynthesis)return;
-  // Cancel any ongoing speech
   window.speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(text);
-  // Pick a deep, slow older-male voice if available
+  const u=new SpeechSynthesisUtterance(text);
   const voices=window.speechSynthesis.getVoices();
-  const preferred=['Google US English','Alex','Fred','Albert','Daniel','en-US','en_US'];
-  let picked=null;
-  for(const name of preferred){
-    picked=voices.find(v=>v.name.includes(name)||v.lang.includes(name));
-    if(picked)break;
-  }
-  // Fallback: pick any English male-sounding voice
-  if(!picked)picked=voices.find(v=>v.lang.startsWith('en'));
-  if(picked)utt.voice=picked;
-  utt.rate=0.78;   // slow and deliberate
-  utt.pitch=0.85;  // slightly lower pitch for older voice
-  utt.volume=1.0;
-  currentUtterance=utt;
-  window.speechSynthesis.speak(utt);
+  const pick=voices.find(v=>v.name.includes('Alex')||v.name.includes('Fred')||v.lang.startsWith('en'))||null;
+  if(pick)u.voice=pick;
+  u.rate=0.78;u.pitch=0.85;u.volume=1;
+  window.speechSynthesis.speak(u);
 }
-// Voices load async on some browsers
-window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+window.speechSynthesis&&(window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices());
 
-// ── DEVIL / TROY ──────────────────────────────────────────────────────────
-function startDevilMode(){isDevil=true;isAngry=false;setTimeout(()=>launchQuiz(),2500);}
+// ── ISRAEL ──────────────────────────────────────────
+function triggerIsraelMode(){
+  israelMode=true;starOfDavidEyes=true;
+  document.getElementById('israel-overlay').classList.add('active');
+  setTimeout(()=>{document.getElementById('israel-overlay').classList.remove('active');israelMode=false;starOfDavidEyes=false;},5000);
+}
+
+// ── DEVIL / TROY ─────────────────────────────────────
+let quizQuestions=[],quizIdx=0,quizScore=0,quizTimer=null,quizTimeLeft=20,quizAnswered=false;
+function startDevilMode(){isDevil=true;setTimeout(()=>launchTroyQuiz(),2500);}
 function endDevilMode(){isDevil=false;devilIntensity=0;isAngry=false;nextQuizAt=randQuizAt();}
 
-// ── QUIZ ──────────────────────────────────────────────────────────────────
-let quizQuestions=[],quizIdx=0,quizScore=0,quizTimer=null,quizTimeLeft=20,quizAnswered=false;
-async function launchQuiz(){
+async function launchTroyQuiz(){
   if(qHistory.length<3){endDevilMode();return;}
   const pool=[...qHistory].sort(()=>Math.random()-0.5).slice(0,3);
-  quizQuestions=[];setStatus('😈 Troy generating quiz…','err');
+  quizQuestions=[];
   for(const item of pool){
     try{
-      const prompt=`Based on this Q&A:
-Q: "${item.q}"
-A: "${item.a}"
-Create a multiple-choice quiz question. Respond ONLY with valid JSON (no markdown):
-{"question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correct":0}
-"correct" is 0-based index. Make wrong answers plausible.`;
-      const raw=await groqChat([{role:'user',content:prompt}],300);
+      const raw=await groqChat([{role:'user',content:`Q:"${item.q}" A:"${item.a}" Make a 4-option MC quiz question. JSON only no markdown: {"question":"...","options":["A)...","B)...","C)...","D)..."],"correct":0}`}],280);
       quizQuestions.push(JSON.parse(raw.replace(/```json|```/g,'').trim()));
-    }catch(e){console.warn('quiz parse err',e);}
+    }catch(e){}
   }
-  if(quizQuestions.length===0){endDevilMode();return;}
+  if(!quizQuestions.length){endDevilMode();return;}
   quizIdx=0;quizScore=0;
   document.getElementById('quiz-overlay').classList.add('active');
-  showQuizQuestion();
+  showTroyQ();
 }
-function showQuizQuestion(){
+function showTroyQ(){
   quizAnswered=false;
   const q=quizQuestions[quizIdx];
   document.getElementById('quiz-q').textContent=q.question;
   document.getElementById('quiz-feedback').textContent='';
   document.getElementById('quiz-score').textContent=`Q ${quizIdx+1}/${quizQuestions.length} | Score: ${quizScore}`;
   document.getElementById('quiz-next-btn').style.display='none';
-  const optsEl=document.getElementById('quiz-options');
-  optsEl.innerHTML='';
-  q.options.forEach((opt,i)=>{
-    const btn=document.createElement('button');
-    btn.className='quiz-opt';btn.textContent=opt;
-    btn.onclick=()=>answerQuiz(i,btn);
-    optsEl.appendChild(btn);
-  });
-  quizTimeLeft=20;updateTimerBar(20,20);clearInterval(quizTimer);
+  const op=document.getElementById('quiz-options');op.innerHTML='';
+  q.options.forEach((o,i)=>{const b=document.createElement('button');b.className='quiz-opt';b.textContent=o;b.onclick=()=>answerTroy(i,b);op.appendChild(b);});
+  quizTimeLeft=20;updateTroyTimer(20,20);clearInterval(quizTimer);
   let paperSaid=false;
   quizTimer=setInterval(()=>{
-    quizTimeLeft--;
-    updateTimerBar(quizTimeLeft,20);
-    if(quizTimeLeft===5&&!paperSaid&&!quizAnswered){
-      paperSaid=true;
-      bubble="I gots to get that paper.";
-      speak("I gots to get that paper.");
-    }
-    if(quizTimeLeft<=0){clearInterval(quizTimer);if(!quizAnswered)timeoutQuiz();}
+    quizTimeLeft--;updateTroyTimer(quizTimeLeft,20);
+    if(quizTimeLeft===5&&!paperSaid&&!quizAnswered){paperSaid=true;bubble='I gots to get that paper.';speak('I gots to get that paper.');}
+    if(quizTimeLeft<=0){clearInterval(quizTimer);if(!quizAnswered)troyTimeout();}
   },1000);
 }
-function updateTimerBar(l,t){
-  const b=document.getElementById('quiz-timer-bar');
-  b.style.width=(l/t*100)+'%';
-  b.style.background=l>10?'#ff2222':l>5?'#ff6600':'#ff0000';
-}
-function answerQuiz(idx,btn){
+function updateTroyTimer(l,t){const b=document.getElementById('quiz-timer-bar');b.style.width=(l/t*100)+'%';b.style.background=l>10?'#ff2222':l>5?'#ff6600':'#ff0000';}
+function answerTroy(idx,btn){
   if(quizAnswered)return;quizAnswered=true;clearInterval(quizTimer);
-  const q=quizQuestions[quizIdx];
-  const opts=document.querySelectorAll('.quiz-opt');
-  if(idx===q.correct){btn.classList.add('correct');quizScore++;isAngry=false;document.getElementById('quiz-feedback').innerHTML='<span style="color:#00cc44">✓ Correct! Troy nods reluctantly.</span>';}
-  else{btn.classList.add('wrong');opts[q.correct].classList.add('correct');triggerAngry();document.getElementById('quiz-feedback').innerHTML='<span style="color:#ff4444">✗ Wrong! Troy is NOT pleased.</span>';}
+  const q=quizQuestions[quizIdx];const opts=document.querySelectorAll('.quiz-opt');
+  if(idx===q.correct){btn.classList.add('correct');quizScore++;isAngry=false;document.getElementById('quiz-feedback').innerHTML='<span style="color:#00cc44">✓ Correct.</span>';}
+  else{btn.classList.add('wrong');opts[q.correct].classList.add('correct');isAngry=true;angryTimer=2.5;shakeAmt=8;document.getElementById('quiz-feedback').innerHTML='<span style="color:#ff4444">✗ Wrong.</span>';}
   document.getElementById('quiz-score').textContent=`Q ${quizIdx+1}/${quizQuestions.length} | Score: ${quizScore}`;
   document.getElementById('quiz-next-btn').style.display='block';
 }
-function timeoutQuiz(){
+function troyTimeout(){
   quizAnswered=true;
   document.querySelectorAll('.quiz-opt')[quizQuestions[quizIdx].correct].classList.add('correct');
-  triggerAngry();
-  document.getElementById('quiz-feedback').innerHTML='<span style="color:#ff4444">⏰ Too slow! Troy is FURIOUS.</span>';
-  document.getElementById('quiz-score').textContent=`Q ${quizIdx+1}/${quizQuestions.length} | Score: ${quizScore}`;
+  isAngry=true;angryTimer=2.5;shakeAmt=8;
+  document.getElementById('quiz-feedback').innerHTML='<span style="color:#ff4444">⏰ Too slow.</span>';
   document.getElementById('quiz-next-btn').style.display='block';
 }
-function triggerAngry(){isAngry=true;angryTimer=2.5;shake=8;}
-function quizNext(){quizIdx++;isAngry=false;if(quizIdx>=quizQuestions.length)endQuiz();else showQuizQuestion();}
-function endQuiz(){
+function quizNext(){quizIdx++;isAngry=false;if(quizIdx>=quizQuestions.length)endTroyQuiz();else showTroyQ();}
+function endTroyQuiz(){
   clearInterval(quizTimer);
   document.getElementById('quiz-overlay').classList.remove('active');
   const total=quizQuestions.length,pct=Math.round(quizScore/total*100);
   bubble=quizScore===total?`My man, ${pct}% — that is a perfect score. I did not expect that, but here we are.`
-    :quizScore>=total*0.6?`Oh word? ${quizScore} out of ${total} — that is decent. You could do better, but I have seen worse.`
+    :quizScore>=total*0.6?`Oh word? ${quizScore} out of ${total} — that is decent. You could do better.`
     :`My man, ${quizScore} out of ${total}. That is not good. Go back and read your notes carefully.`;
   speak(bubble);
   isAngry=quizScore<total*0.6;if(isAngry)angryTimer=4;
@@ -355,449 +649,536 @@ function endQuiz(){
   setTimeout(()=>{bubble='';isAngry=false;},12000);
 }
 
-// ── CANVAS ────────────────────────────────────────────────────────────────
-const canvas=document.getElementById('c');
-const ctx=canvas.getContext('2d');
-let W,H,dpr=window.devicePixelRatio||1;
-function resize(){
-  const wrap=document.getElementById('scene-wrap');
-  W=wrap.clientWidth;H=wrap.clientHeight;
-  canvas.width=W*dpr;canvas.height=H*dpr;
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
+// ═══════════════════════════════════════════════════════
+// TREADMILL GAME
+// ═══════════════════════════════════════════════════════
+let treadLevel=1,treadRunning=false,treadAnimT=0,treadInterval=null;
+let treadQs=[],treadQIdx=0,treadAnswered=false,treadQTimer=null;
+let treadGbEarned=0,treadQsAnswered=0,treadCrashed=false;
+let treadSpeedInterval=null;
+
+const treadCanvas=document.getElementById('tread-canvas');
+const tctx=treadCanvas.getContext('2d');
+let tW,tH;
+
+function resizeTread(){
+  tW=treadCanvas.offsetWidth; tH=treadCanvas.offsetHeight;
+  treadCanvas.width=tW*(window.devicePixelRatio||1);
+  treadCanvas.height=tH*(window.devicePixelRatio||1);
 }
-window.addEventListener('resize',resize);resize();
 
-let bobT=0,last=0;
-function loop(ts){
-  const dt=Math.min((ts-last)/1000,0.1);last=ts;
-  bobT+=dt*1.5;
-  kScale+=(targetScale-kScale)*0.12;
-  if(thinking)dots+=dt*3;
-  if(isDevil)devilIntensity=Math.min(1,devilIntensity+dt*0.8);
-  else       devilIntensity=Math.max(0,devilIntensity-dt*1.2);
-  if(angryTimer>0){angryTimer-=dt;if(angryTimer<=0)isAngry=false;}
-  if(shake>0)shake*=0.85;
-  draw();requestAnimationFrame(loop);
+async function startTreadmill(){
+  showScreen('treadmill');
+  resizeTread();
+  treadLevel=1;treadRunning=true;treadAnimT=0;treadGbEarned=0;
+  treadQsAnswered=0;treadCrashed=false;
+  document.getElementById('tread-result').classList.remove('active');
+  document.getElementById('tread-lvl-num').textContent='1';
+  document.getElementById('tread-gb-preview').textContent='0';
+  document.getElementById('tread-q').textContent='Get ready...';
+  document.getElementById('tread-opts').innerHTML='';
+
+  // Intro speech
+  speak("My man, it is time to see how fast I can go on this treadmill.");
+  bubble='My man, it\'s time to see how fast I can go on this treadmill.';
+  setTimeout(()=>bubble='',4000);
+
+  // Start animation loop
+  treadAnimLoop();
+
+  // Speed up every 3 seconds
+  treadSpeedInterval=setInterval(()=>{
+    if(!treadRunning)return;
+    treadLevel=Math.min(12,treadLevel+1);
+    document.getElementById('tread-lvl-num').textContent=treadLevel;
+    if(treadLevel>=12){ crashKeith(); }
+  },3000);
+
+  // Load first question after 2s
+  setTimeout(()=>loadTreadQ(),2000);
 }
-requestAnimationFrame(loop);
 
-function draw(){
-  const c=ctx,p=dpr;
-  c.setTransform(p,0,0,p,0,0);
-  c.clearRect(0,0,W,H);
+function treadAnimLoop(){
+  if(!treadRunning&&!treadCrashed)return;
+  treadAnimT+=0.05+treadLevel*0.015;
+  drawTreadmill();
+  requestAnimationFrame(treadAnimLoop);
+}
 
-  const landscape = W > H;
+function drawTreadmill(){
+  const p=window.devicePixelRatio||1;
+  tctx.setTransform(p,0,0,p,0,0);
+  tctx.clearRect(0,0,tW,tH);
 
-  // Responsive Keith scale — shrink to fit, never overflow
-  // In portrait: Keith takes up ~38% of height
-  // In landscape: Keith takes up ~52% of height (scene is shorter)
-  const baseScale = landscape ? (H * 0.0028) : (H * 0.0022);
-  const ks = kScale * Math.min(baseScale, W * 0.0018);
+  // Background — gym
+  tctx.fillStyle='#1a1a2a';tctx.fillRect(0,0,tW,tH);
+  // Floor
+  tctx.fillStyle='#2a2a1a';tctx.fillRect(0,tH*0.75,tW,tH*0.25);
+  // Treadmill base
+  const tmX=tW*0.15,tmY=tH*0.58,tmW=tW*0.70,tmH=tH*0.18;
+  tctx.fillStyle='#333';
+  rrt(tctx,tmX,tmY,tmW,tmH,8);tctx.fill();
+  // Belt (moving)
+  tctx.fillStyle='#222';
+  rrt(tctx,tmX+6,tmY+6,tmW-12,tmH-12,4);tctx.fill();
+  // Belt lines
+  const beltSpeed=(treadLevel*18);
+  const offset=(treadAnimT*beltSpeed)%40;
+  tctx.strokeStyle='#444';tctx.lineWidth=2;
+  for(let x=tmX+6+(offset%40)-40;x<tmX+tmW;x+=40){
+    tctx.beginPath();tctx.moveTo(x,tmY+6);tctx.lineTo(x,tmY+tmH-6);tctx.stroke();
+  }
+  // Handles
+  tctx.strokeStyle='#888';tctx.lineWidth=6;tctx.lineCap='round';
+  tctx.beginPath();tctx.moveTo(tmX+tmW*0.2,tmY);tctx.lineTo(tmX+tmW*0.2,tmY-tH*0.18);tctx.stroke();
+  tctx.beginPath();tctx.moveTo(tmX+tmW*0.8,tmY);tctx.lineTo(tmX+tmW*0.8,tmY-tH*0.18);tctx.stroke();
+  tctx.beginPath();tctx.moveTo(tmX+tmW*0.2,tmY-tH*0.18);tctx.lineTo(tmX+tmW*0.8,tmY-tH*0.18);tctx.stroke();
+  // Speed display
+  tctx.fillStyle='#0f0';tctx.font=`bold ${Math.max(10,tW*0.04)}px "Courier New"`;tctx.textAlign='center';
+  tctx.fillText(`SPEED: ${treadLevel}`,tW*0.5,tmY-tH*0.22);
 
-  // Keith x: in landscape shift left to leave room for bubble on right
-  // In portrait: centred
-  const keithCX = landscape ? W * 0.38 : W * 0.5;
-  // Keith y: sit on the desk, which is at ~77% of scene height
-  const deskY = H * 0.77;
-  // Keith body bottom should sit at deskY; offset by ~110*ks (bottom of body)
-  const keithCY = deskY - 110*ks + Math.sin(bobT)*2;
+  // Keith running
+  const runCX=tW*0.5, runCY=tmY-2;
+  if(treadCrashed){
+    // Crashed — Keith flies off
+    const crashT=Math.min(1,(Date.now()-crashTime)/800);
+    tctx.save();
+    tctx.translate(runCX+crashT*tW*0.3,runCY-crashT*tH*0.4);
+    tctx.rotate(crashT*Math.PI*0.6);
+    drawKeithRunning(tctx,0,0,tW*0.0014,treadAnimT,true);
+    tctx.restore();
+  } else {
+    drawKeithRunning(tctx,runCX,runCY,tW*0.0014,treadAnimT,false);
+  }
 
-  const sx=isAngry?(Math.random()-0.5)*shake:0;
-  const sy=isAngry?(Math.random()-0.5)*shake*0.5:0;
-  c.translate(sx,sy);
+  // Level bar
+  const barW=tW*0.8,barX=(tW-barW)/2,barY=tH*0.92;
+  tctx.fillStyle='#333';rrt(tctx,barX,barY,barW,10,5);tctx.fill();
+  tctx.fillStyle=treadLevel>9?'#e74c3c':treadLevel>6?'#f39c12':'#2ecc71';
+  rrt(tctx,barX,barY,barW*(treadLevel/12),10,5);tctx.fill();
+  tctx.fillStyle='#fff';tctx.font=`${Math.max(9,tW*0.022)}px "Courier New"`;
+  tctx.textAlign='center';tctx.fillText(`LEVEL ${treadLevel}/12`,tW*0.5,barY-4);
+}
 
-  if(!israelMode){c.fillStyle='#0d1b2a';c.fillRect(0,0,W,H);}
-  drawBg(c);
-  drawDesk(c);
-  drawKeith(c,keithCX,keithCY,ks);
-  if(thinking)drawThinking(c,keithCX,keithCY,ks);
-  if(bubble)  drawBubble(c,keithCX,keithCY,ks,landscape);
-  if(devilIntensity>0){
-    const grad=c.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
-    grad.addColorStop(0,'rgba(0,0,0,0)');
-    grad.addColorStop(1,`rgba(180,0,0,${devilIntensity*0.45})`);
-    c.fillStyle=grad;c.fillRect(0,0,W,H);
+let crashTime=0;
+function crashKeith(){
+  treadRunning=false;treadCrashed=true;crashTime=Date.now();
+  clearInterval(treadSpeedInterval);clearInterval(treadQTimer);
+  speak("Oh word? I am going through the ceiling!");
+  setTimeout(()=>showTreadResult(false),2200);
+}
+
+function showTreadResult(won){
+  const gb=treadGbEarned+5;
+  addGreenbacks(gb);
+  document.getElementById('tread-result-title').textContent=treadCrashed?'💥 CRASHED!':'✓ DONE!';
+  document.getElementById('tread-result-msg').textContent=treadCrashed
+    ?`Keith hit level 12 and flew through the ceiling.\n${treadQsAnswered} questions answered.`
+    :`Good run! ${treadQsAnswered} questions answered.`;
+  document.getElementById('tread-result-gb').textContent=`+${gb} 💵 greenbacks earned!`;
+  document.getElementById('tread-result').classList.add('active');
+}
+
+function endTreadmill(){
+  clearInterval(treadSpeedInterval);clearInterval(treadQTimer);
+  treadRunning=false;treadCrashed=false;
+  document.getElementById('tread-result').classList.remove('active');
+  showScreen('main');
+}
+
+async function loadTreadQ(){
+  if(!treadRunning)return;
+  document.getElementById('tread-q').textContent='Loading question...';
+  document.getElementById('tread-opts').innerHTML='';
+  try{
+    const topics=['photosynthesis','chemical bonds','periodic table','acids and bases','Newton laws','DNA','atomic structure','electronegativity','states of matter','enzymes'];
+    const topic=topics[Math.floor(Math.random()*topics.length)];
+    const raw=await groqChat([{role:'user',content:`Make a short 4-option chemistry/science MC question about ${topic}. JSON only: {"question":"...","options":["A)...","B)...","C)...","D)..."],"correct":0}`}],220);
+    const q=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    treadQs.push(q);showTreadQ(q);
+  }catch(e){ document.getElementById('tread-q').textContent='Question error. Next in 3s...'; setTimeout(()=>loadTreadQ(),3000); }
+}
+
+function showTreadQ(q){
+  if(!treadRunning)return;
+  treadAnswered=false;
+  document.getElementById('tread-q').textContent=q.question;
+  const op=document.getElementById('tread-opts');op.innerHTML='';
+  q.options.forEach((o,i)=>{
+    const b=document.createElement('button');b.className='tread-opt';b.textContent=o;
+    b.onclick=()=>answerTreadQ(i,b,q);op.appendChild(b);
+  });
+}
+
+function answerTreadQ(idx,btn,q){
+  if(treadAnswered||!treadRunning)return;
+  treadAnswered=true;treadQsAnswered++;
+  document.getElementById('tread-gb-preview').textContent=treadQsAnswered+5;
+  if(idx===q.correct){
+    btn.classList.add('correct');
+    treadLevel=Math.max(1,treadLevel-1);
+    document.getElementById('tread-lvl-num').textContent=treadLevel;
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.tread-opt')[q.correct].classList.add('correct');
+  }
+  setTimeout(()=>loadTreadQ(),1500);
+}
+
+// Keith running animation
+function drawKeithRunning(c,cx,cy,s,t,crashed){
+  const legSwing=Math.sin(t*6)*18;
+  const armSwing=Math.sin(t*6+Math.PI)*14;
+  const bounce=Math.abs(Math.sin(t*6))*4;
+  const bodyY=cy-125*s-bounce;
+
+  function ov(dx,dy,rx,ry,fill){c.beginPath();c.ellipse(cx+dx*s,bodyY+dy*s,rx*s,ry*s,0,0,Math.PI*2);c.fillStyle=fill;c.fill();}
+  function ln(x1,y1,x2,y2,col,lw){c.beginPath();c.moveTo(cx+x1*s,bodyY+y1*s);c.lineTo(cx+x2*s,bodyY+y2*s);c.strokeStyle=col;c.lineWidth=lw*s;c.lineCap='round';c.stroke();}
+
+  // Legs (running)
+  const leg1Angle=(legSwing)*Math.PI/180;
+  const leg2Angle=(-legSwing)*Math.PI/180;
+  // Leg 1
+  c.beginPath();c.moveTo(cx,bodyY+90*s);
+  c.lineTo(cx+Math.sin(leg1Angle)*50*s,bodyY+(90+Math.cos(leg1Angle)*50)*s);
+  c.strokeStyle='#1a2a4a';c.lineWidth=10*s;c.lineCap='round';c.stroke();
+  // Leg 2
+  c.beginPath();c.moveTo(cx,bodyY+90*s);
+  c.lineTo(cx+Math.sin(leg2Angle)*50*s,bodyY+(90+Math.cos(leg2Angle)*50)*s);
+  c.strokeStyle='#1a2a4a';c.lineWidth=10*s;c.lineCap='round';c.stroke();
+
+  // Arms swinging
+  const arm1A=(armSwing)*Math.PI/180;
+  c.beginPath();c.moveTo(cx,bodyY+50*s);
+  c.lineTo(cx+Math.sin(arm1A)*40*s,bodyY+(50+Math.cos(arm1A)*35)*s);
+  c.strokeStyle='#1a2a4a';c.lineWidth=9*s;c.lineCap='round';c.stroke();
+  c.beginPath();c.moveTo(cx,bodyY+50*s);
+  c.lineTo(cx-Math.sin(arm1A)*40*s,bodyY+(50+Math.cos(arm1A)*35)*s);
+  c.strokeStyle='#1a2a4a';c.lineWidth=9*s;c.lineCap='round';c.stroke();
+
+  // Body
+  ov(0,68,32,40,'#1a2a4a');
+  // Neck
+  c.fillStyle='#3a1f0a';c.fillRect(cx-10*s,bodyY+20*s,20*s,22*s);
+  // Head
+  ov(0,-15,44,52,'#3a1f0a');
+  // Eyes (wide open / panicked at high level)
+  const eyeSize=treadLevel>9?7:5;
+  ov(-20,-12,eyeSize,eyeSize,'#111');ov(20,-12,eyeSize,eyeSize,'#111');
+  ov(-22,-14,2.5,2.5,'white');ov(18,-14,2.5,2.5,'white');
+  // Sweat drops at high speed
+  if(treadLevel>6){
+    c.fillStyle='rgba(100,180,255,0.8)';
+    c.beginPath();c.arc(cx+54*s,bodyY-25*s,3*s,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(cx+62*s,bodyY-10*s,2*s,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(cx+48*s,bodyY-5*s,2.5*s,0,Math.PI*2);c.fill();
+  }
+  // Mouth — open panting
+  c.beginPath();c.ellipse(cx,bodyY+4*s,8*s,5*s,0,0,Math.PI);c.fillStyle='#aa7744';c.fill();
+  // Beard
+  ov(0,14,16,13,'#0a0000');
+  // Mustache
+  c.beginPath();c.ellipse(cx,bodyY+8*s,16*s,7*s,0,Math.PI,Math.PI*2);c.fillStyle='#0a0000';c.fill();
+}
+
+function rrt(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+
+// ═══════════════════════════════════════════════════════
+// WHACK-A-KEITH
+// ═══════════════════════════════════════════════════════
+let whackTimer=null,whackTimeLeft=30,whackHits=0,whackRunning=false;
+const HOLE_COUNT=9;
+let holeStates=new Array(HOLE_COUNT).fill(false); // true = keith visible
+let holeTimers=[];
+
+function startWhack(){
+  showScreen('whack');
+  whackHits=0;whackTimeLeft=30;whackRunning=true;
+  document.getElementById('whack-hit-count').textContent='0';
+  document.getElementById('whack-timer').textContent='⏱ 30';
+  document.getElementById('whack-result').classList.remove('active');
+  buildWhackGrid();
+  // Timer
+  whackTimer=setInterval(()=>{
+    whackTimeLeft--;
+    document.getElementById('whack-timer').textContent='⏱ '+whackTimeLeft;
+    if(whackTimeLeft<=0){ clearInterval(whackTimer); endWhackGame(); }
+  },1000);
+  // Pop keiths up randomly
+  scheduleWhackPops();
+}
+
+function buildWhackGrid(){
+  const grid=document.getElementById('whack-grid');
+  grid.innerHTML='';
+  holeStates=new Array(HOLE_COUNT).fill(false);
+  holeTimers.forEach(t=>clearTimeout(t));holeTimers=[];
+  for(let i=0;i<HOLE_COUNT;i++){
+    const hole=document.createElement('div');
+    hole.className='whack-hole';
+    hole.dataset.idx=i;
+    // Keith canvas inside
+    const wrap=document.createElement('div');
+    wrap.className='whack-keith-wrap';
+    wrap.id='whack-wrap-'+i;
+    const c=document.createElement('canvas');
+    c.width=70;c.height=70;c.id='whack-c-'+i;
+    wrap.appendChild(c);
+    hole.appendChild(wrap);
+    hole.addEventListener('click',()=>whackHit(i));
+    hole.addEventListener('touchstart',e=>{e.preventDefault();whackHit(i);},{passive:false});
+    grid.appendChild(hole);
+    drawWhackKeith(i,false);
   }
 }
 
-function rr(c,x,y,w,h,r){
-  c.beginPath();
-  c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+function drawWhackKeith(idx,angry){
+  const c=document.getElementById('whack-c-'+idx);
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,70,70);
+  // Just a small Keith face
+  const cx=35,cy=52;
+  drawKeithFace(ctx,cx,cy,0.55,angry);
+}
+
+function scheduleWhackPops(){
+  if(!whackRunning)return;
+  for(let i=0;i<HOLE_COUNT;i++){
+    scheduleOnePop(i);
+  }
+}
+
+function scheduleOnePop(i){
+  if(!whackRunning)return;
+  const delay=500+Math.random()*2000;
+  const t=setTimeout(()=>{
+    if(!whackRunning)return;
+    popKeith(i);
+  },delay);
+  holeTimers[i]=t;
+}
+
+function popKeith(i){
+  if(!whackRunning)return;
+  holeStates[i]=true;
+  const wrap=document.getElementById('whack-wrap-'+i);
+  if(wrap)wrap.classList.add('up');
+  drawWhackKeith(i,false);
+  // Auto-hide after random time
+  const showTime=800+Math.random()*1200;
+  const t=setTimeout(()=>{
+    hideKeith(i);
+    scheduleOnePop(i);
+  },showTime);
+  holeTimers[i]=t;
+}
+
+function hideKeith(i){
+  holeStates[i]=false;
+  const wrap=document.getElementById('whack-wrap-'+i);
+  if(wrap)wrap.classList.remove('up');
+}
+
+function whackHit(i){
+  if(!whackRunning||!holeStates[i])return;
+  whackHits++;
+  document.getElementById('whack-hit-count').textContent=whackHits;
+  holeStates[i]=false;
+  clearTimeout(holeTimers[i]);
+  drawWhackKeith(i,true);
+  const wrap=document.getElementById('whack-wrap-'+i);
+  if(wrap){
+    wrap.classList.add('up');
+    setTimeout(()=>{wrap.classList.remove('up');drawWhackKeith(i,false);scheduleOnePop(i);},300);
+  }
+}
+
+function endWhackGame(){
+  whackRunning=false;
+  holeTimers.forEach(t=>clearTimeout(t));
+  // Greenbacks: 1 per hit + 3 for playing
+  const gb=whackHits+3;
+  addGreenbacks(gb);
+  const resTitle=document.querySelector('#whack-result #tread-result-title');
+  if(resTitle)resTitle.textContent=whackHits>15?'🔨 WHACK MASTER!':whackHits>7?'💪 Not Bad!':'😬 Keep Practicing!';
+  document.getElementById('whack-result-msg').textContent=`You whacked Keith ${whackHits} times in 30 seconds!`;
+  document.getElementById('whack-result-gb').textContent=`+${gb} 💵 greenbacks earned!`;
+  document.getElementById('whack-result').classList.add('active');
+}
+
+function endWhack(){
+  clearInterval(whackTimer);
+  holeTimers.forEach(t=>clearTimeout(t));
+  whackRunning=false;
+  document.getElementById('whack-result').classList.remove('active');
+  showScreen('main');
+}
+
+// ═══════════════════════════════════════════════════════
+// SHARED DRAW FUNCTIONS
+// ═══════════════════════════════════════════════════════
+function rrg(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
   c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
 }
-function lerpColor(c1,c2,t){
+function lerpC(c1,c2,t){
   const r1=parseInt(c1.slice(1,3),16),g1=parseInt(c1.slice(3,5),16),b1=parseInt(c1.slice(5,7),16);
   const r2=parseInt(c2.slice(1,3),16),g2=parseInt(c2.slice(3,5),16),b2=parseInt(c2.slice(5,7),16);
   return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
 }
 
-// ── BACKGROUND ────────────────────────────────────────────────────────────
-function drawBg(c){
-  const wallH=H*0.58;
-  const wallCol=devilIntensity>0?lerpColor('#2a2a2a','#2a0a0a',devilIntensity):'#2a2a2a';
-  // Only draw opaque bg if not in israel mode
-  if(!israelMode){
-    c.fillStyle=wallCol;c.fillRect(0,0,W,wallH);
-    c.fillStyle='#1a1a10';c.fillRect(0,wallH,W,H-wallH);
-  } else {
-    // Semi-transparent wall overlay so flag still visible
-    c.fillStyle=`rgba(42,42,42,0.45)`;c.fillRect(0,0,W,wallH);
-    c.fillStyle=`rgba(26,26,16,0.45)`;c.fillRect(0,wallH,W,H-wallH);
-  }
-
-  // Large TV/smartboard on wall
-  const tvX=W*0.18,tvY=8,tvW=W*0.64,tvH=H*0.36;
-  // TV bezel
-  c.fillStyle='#111';rr(c,tvX,tvY,tvW,tvH,6);c.fill();
-  // TV screen - showing mock regents
-  c.fillStyle='#ddeeff';rr(c,tvX+6,tvY+6,tvW-12,tvH-12,3);c.fill();
-  // Screen content
-  c.fillStyle='#1a3a6a';c.font=`bold ${Math.max(8,W*0.018)}px "Courier New"`;c.textAlign='center';
-  c.fillText('Chemistry MOCK REGENTS',tvX+tvW/2,tvY+tvH*0.22);
-  c.fillStyle='#333';c.font=`${Math.max(6,W*0.012)}px "Courier New"`;
-  ['Student Name: ___________','Period: ___  Date: ___________',
-   'Answer all questions to the best','of your ability. Show all work.']
-    .forEach((t,i)=>c.fillText(t,tvX+tvW/2,tvY+tvH*(0.36+i*0.15)));
-  // TV stand mount
-  c.fillStyle='#222';c.fillRect(tvX+tvW/2-4,tvY+tvH,8,14);
-  c.fillStyle='#333';c.fillRect(tvX+tvW/2-18,tvY+tvH+14,36,5);
-
-  // US flag top-left corner (small)
-  const fx=14,fy=14,fw=44,fh=26;
-  c.fillStyle='#b22234';c.fillRect(fx,fy,fw,fh);
-  for(let i=0;i<6;i+=2){c.fillStyle='#fff';c.fillRect(fx,fy+i*(fh/6),fw,fh/6);}
-  c.fillStyle='#3c3b6e';c.fillRect(fx,fy,fw*0.4,fh*0.55);
-
-  // Science poster on left wall
-  const px=14,py=50,pw=110,ph=120;
-  c.fillStyle='#f5f5dc';rr(c,px,py,pw,ph,3);c.fill();
-  c.strokeStyle='#888';c.lineWidth=1;rr(c,px,py,pw,ph,3);c.stroke();
-  c.fillStyle='#1a5c1a';c.font=`bold ${Math.max(7,W*0.014)}px "Courier New"`;c.textAlign='center';
-  c.fillText('THE ATOM',px+pw/2,py+16);
-  c.fillStyle='#333';c.font=`${Math.max(5,W*0.010)}px "Courier New"`;
-  c.fillText('VSEPR &',px+pw/2,py+30);
-  c.fillText('SHAPES OF',px+pw/2,py+42);
-  c.fillText('MOLECULES',px+pw/2,py+54);
-  // Draw some molecule blobs
-  [[0.3,0.72],[0.5,0.78],[0.7,0.72],[0.5,0.65]].forEach(([bx,by])=>{
-    c.beginPath();c.arc(px+pw*bx,py+ph*by,6,0,Math.PI*2);
-    c.fillStyle='#4a90d9';c.fill();
-  });
-  c.strokeStyle='#4a90d9';c.lineWidth=2;
-  [[0.3,0.72,0.5,0.78],[0.5,0.78,0.7,0.72],[0.5,0.65,0.5,0.78]].forEach(([x1,y1,x2,y2])=>{
-    c.beginPath();c.moveTo(px+pw*x1,py+ph*y1);c.lineTo(px+pw*x2,py+ph*y2);c.stroke();
-  });
-
-  // Filing cabinets top-right area
-  const cx2=W-130,cy2=20,cw=80,ch=90;
-  c.fillStyle='#b8aa88';rr(c,cx2,cy2,cw,ch,2);c.fill();
-  c.strokeStyle='#999';c.lineWidth=1;
-  for(let i=0;i<3;i++){
-    c.strokeStyle='#888';rr(c,cx2+4,cy2+6+i*28,cw-8,24,2);c.stroke();
-    c.fillStyle='#aaa';c.fillRect(cx2+cw/2-8,cy2+18+i*28,16,4);
-  }
+// Minimal Keith face (for home canvas + whack holes)
+function drawKeithFace(ctx,cx,cy,s,angry=false){
+  function ov(dx,dy,rx,ry,fill){ctx.beginPath();ctx.ellipse(cx+dx*s,cy+dy*s,rx*s,ry*s,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();}
+  ov(0,-10,44,52,'#3a1f0a');
+  // Ears
+  ov(-50,-8,8,10,'#3a1f0a');ov(50,-8,8,10,'#3a1f0a');
+  // Eyes
+  if(angry){ov(-20,-14,6,4,'#ff0000');ov(20,-14,6,4,'#ff0000');}
+  else{ov(-20,-14,5,5,'#111');ov(20,-14,5,5,'#111');}
+  ov(-22,-16,2.5,2.5,'white');ov(18,-16,2.5,2.5,'white');
+  // Wrinkles
+  for(const yl of [-40,-33,-26]){ctx.beginPath();ctx.moveTo(cx-15*s,cy+yl*s);ctx.lineTo(cx+15*s,cy+yl*s);ctx.strokeStyle='#1e0f00';ctx.lineWidth=1*s;ctx.stroke();}
+  // Eyebrows
+  ctx.beginPath();ctx.moveTo(cx-36*s,cy-22*s);ctx.lineTo(cx-12*s,cy-26*s);ctx.strokeStyle='#0a0000';ctx.lineWidth=3*s;ctx.lineCap='round';ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+12*s,cy-26*s);ctx.lineTo(cx+36*s,cy-22*s);ctx.strokeStyle='#0a0000';ctx.lineWidth=3*s;ctx.stroke();
+  // Nose
+  ov(0,8,5,7,'#1e0f00');
+  // Mustache
+  ctx.beginPath();ctx.ellipse(cx,cy+18*s,18*s,8*s,0,Math.PI,Math.PI*2);ctx.fillStyle='#0a0000';ctx.fill();
+  // Beard
+  ov(0,32,16,14,'#0a0000');
+  // Mouth
+  if(angry){ctx.beginPath();ctx.ellipse(cx,cy+24*s,10*s,5*s,0,0,Math.PI);ctx.fillStyle='#cc0000';ctx.fill();}
+  else{ctx.beginPath();ctx.ellipse(cx,cy+26*s,8*s,5*s,0,Math.PI,Math.PI*2);ctx.fillStyle='#aa7744';ctx.fill();}
 }
 
-// ── DESK (lab demo desk: wide black top, deep maroon body) ─────────────────
-function drawDesk(c){
-  const deskTop  = H*0.72;   // top surface y
-  const deskFace = H*0.735;  // front face starts
-  const deskBot  = H*0.92;   // bottom of desk
-  const deskL    = W*0.04;
-  const deskR    = W*0.96;
-  const deskW    = deskR-deskL;
-
-  // ── Desk body (maroon cabinet) ──
-  c.fillStyle='#5a1a22';
-  rr(c,deskL,deskFace,deskW,deskBot-deskFace,3);c.fill();
-
-  // Cabinet panel lines (vertical dividers)
-  c.strokeStyle='#3d0f17';c.lineWidth=2;
-  [0.25,0.5,0.75].forEach(t=>{
-    c.beginPath();c.moveTo(deskL+deskW*t,deskFace+4);c.lineTo(deskL+deskW*t,deskBot-4);c.stroke();
-  });
-
-  // Science poster on front of desk
-  const fpx=deskL+deskW*0.08, fpy=deskFace+8, fpw=deskW*0.30, fph=deskBot-deskFace-16;
-  c.fillStyle='#e8f0d8';rr(c,fpx,fpy,fpw,fph,3);c.fill();
-  c.strokeStyle='#aab890';c.lineWidth=1;rr(c,fpx,fpy,fpw,fph,3);c.stroke();
-  c.fillStyle='#2a6a2a';c.font=`bold ${Math.max(6,W*0.011)}px "Courier New"`;c.textAlign='left';
-  c.fillText('VSEPR & THE',fpx+6,fpy+14);
-  c.fillText('SHAPES OF',fpx+6,fpy+24);
-  c.fillText('MOLECULES',fpx+6,fpy+34);
-  // colored dots on poster
-  [[0.15,0.65,'#e74c3c'],[0.35,0.65,'#3498db'],[0.55,0.65,'#2ecc71'],
-   [0.25,0.80,'#f39c12'],[0.45,0.80,'#9b59b6']].forEach(([bx,by,col])=>{
-    c.beginPath();c.arc(fpx+fpw*bx,fpy+fph*by,4,0,Math.PI*2);c.fillStyle=col;c.fill();
-  });
-
-  // "Mr. G" label on desk front
-  c.fillStyle='#1a3a1a';c.font=`bold ${Math.max(7,W*0.013)}px "Courier New"`;c.textAlign='center';
-  c.fillText('Mr. G',deskL+deskW*0.62,deskFace+(deskBot-deskFace)*0.55);
-
-  // ── Black countertop surface ──
-  c.fillStyle='#1a1a1a';
-  rr(c,deskL-2,deskTop,deskW+4,deskFace-deskTop+4,2);c.fill();
-  // Countertop edge highlight
-  c.fillStyle='#2a2a2a';
-  c.fillRect(deskL-2,deskTop,deskW+4,4);
-
-  // ── Desk items ──
-
-  // Laptop (right side of desk)
-  const lapX=deskL+deskW*0.60, lapY=deskTop-36, lapW=W*0.16, lapH=26;
-  // Screen
-  c.fillStyle='#222';rr(c,lapX,lapY,lapW,lapH,2);c.fill();
-  c.fillStyle='#4488cc';rr(c,lapX+3,lapY+3,lapW-6,lapH-8,1);c.fill();
-  c.fillStyle='#6aadee';c.font=`${Math.max(5,W*0.009)}px "Courier New"`;c.textAlign='left';
-  c.fillText('MOCK REG',lapX+5,lapY+12);
-  // Base
-  c.fillStyle='#333';rr(c,lapX-2,lapY+lapH-2,lapW+4,6,1);c.fill();
-
-  // Cup with straw (drink)
-  const cupX=deskL+deskW*0.82, cupY=deskTop-32;
-  // Cup body
-  c.fillStyle='#e74c3c';
-  c.beginPath();c.moveTo(cupX-9,cupY+30);c.lineTo(cupX-7,cupY);c.lineTo(cupX+7,cupY);c.lineTo(cupX+9,cupY+30);c.closePath();c.fill();
-  c.fillStyle='rgba(255,255,255,0.15)';
-  c.beginPath();c.moveTo(cupX-9,cupY+30);c.lineTo(cupX-7,cupY);c.lineTo(cupX-3,cupY);c.lineTo(cupX-4,cupY+30);c.closePath();c.fill();
-  // Lid
-  c.fillStyle='#c0392b';c.beginPath();c.ellipse(cupX,cupY,9,4,0,0,Math.PI*2);c.fill();
-  // Straw
-  c.strokeStyle='#fff';c.lineWidth=2;
-  c.beginPath();c.moveTo(cupX+3,cupY-2);c.lineTo(cupX+8,cupY-28);c.stroke();
-
-  // Pencil/pen holder
-  const phX=deskL+deskW*0.48, phY=deskTop-22;
-  c.fillStyle='#888';
-  c.beginPath();c.ellipse(phX,phY+18,9,5,0,0,Math.PI*2);c.fill();
-  c.fillStyle='#777';c.fillRect(phX-9,phY,18,18);
-  c.beginPath();c.ellipse(phX,phY,9,5,0,0,Math.PI*2);c.fill();
-  // pencils sticking out
-  [[-5,'#f1c40f'],[-1,'#888'],[4,'#e67e22']].forEach(([dx,col])=>{
-    c.strokeStyle=col;c.lineWidth=2;
-    c.beginPath();c.moveTo(phX+dx,phY);c.lineTo(phX+dx+1,phY-16);c.stroke();
-  });
-
-  // Small bell
-  const bellX=deskL+deskW*0.54, bellY=deskTop-14;
-  c.fillStyle='#d4af37';
-  c.beginPath();c.arc(bellX,bellY,10,Math.PI,Math.PI*2);c.fill();
-  c.beginPath();c.arc(bellX,bellY,10,0,Math.PI);c.fillStyle='#c9a227';c.fill();
-  c.fillStyle='#b8860b';c.beginPath();c.arc(bellX,bellY+2,3,0,Math.PI*2);c.fill();
-
-  // Stack of papers
-  const papX=deskL+deskW*0.35, papY=deskTop-18;
-  for(let i=3;i>=0;i--){
-    c.fillStyle=i===0?'#fff':'#f0f0f0';
-    c.strokeStyle='#ccc';c.lineWidth=0.5;
-    rr(c,papX+i*1.5,papY+i*1.5,W*0.11,16,1);c.fill();c.stroke();
-  }
-  c.fillStyle='#333';c.font=`${Math.max(5,W*0.009)}px "Courier New"`;c.textAlign='left';
-  c.fillText('REGENTS',papX+5,papY+10);
-
-  // Small black box / device (like a speaker or timer)
-  const boxX=deskL+deskW*0.72, boxY=deskTop-18;
-  c.fillStyle='#222';rr(c,boxX,boxY,22,16,2);c.fill();
-  c.fillStyle='#444';c.beginPath();c.arc(boxX+11,boxY+8,4,0,Math.PI*2);c.fill();
-
-  // Cables hanging off front
-  c.strokeStyle='#111';c.lineWidth=2;
-  [[deskL+deskW*0.65,deskFace],[deskL+deskW*0.70,deskFace]].forEach(([cx2,cy2])=>{
-    c.beginPath();c.moveTo(cx2,cy2);
-    c.bezierCurveTo(cx2-5,cy2+20,cx2+10,cy2+35,cx2+5,deskBot+5);
-    c.stroke();
-  });
-}
-
-// ── STAR OF DAVID ─────────────────────────────────────────────────────────
-function drawStarOfDavid(c,cx,cy,r,color){
-  c.fillStyle=color;
-  for(let t=0;t<2;t++){
-    c.beginPath();
-    for(let i=0;i<3;i++){
-      const angle=(Math.PI/2)+(i*2*Math.PI/3)+(t*Math.PI);
-      const x=cx+r*Math.cos(angle),y=cy+r*Math.sin(angle);
-      if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
-    }
-    c.closePath();c.globalAlpha=0.9;c.fill();c.globalAlpha=1;
-  }
-}
-
-// ── KEITH ─────────────────────────────────────────────────────────────────
-function drawKeith(c,cx,cy,s){
-  const d=devilIntensity;
-  const SKIN  =lerpColor('#3a1f0a','#2a0800',d);
-  const SKIN_D=lerpColor('#1e0f00','#160000',d);
-  const SHIRT =lerpColor('#1a2a4a','#6a0000',d);
-
-  function ov(dx,dy2,rx,ry,fill,stroke,lw=1.5){
-    c.beginPath();c.ellipse(cx+dx*s,cy+dy2*s,rx*s,ry*s,0,0,Math.PI*2);
-    c.fillStyle=fill;c.fill();
-    if(stroke){c.strokeStyle=stroke;c.lineWidth=lw*s;c.stroke();}
-  }
-  function ln(x1,y1,x2,y2,col,lw){
-    c.beginPath();c.moveTo(cx+x1*s,cy+y1*s);c.lineTo(cx+x2*s,cy+y2*s);
-    c.strokeStyle=col;c.lineWidth=lw*s;c.lineCap='round';c.stroke();
-  }
-
-  ln(-28,60,-56,106,SHIRT,13);
-  ln(28,60,56,106,SHIRT,13);
+// Full Keith for classroom
+function drawKeithFull(c,cx,cy,s,devil,angry,sodEyes){
+  const d=devil;
+  const SKIN=lerpC('#3a1f0a','#2a0800',d);
+  const SKIN_D=lerpC('#1e0f00','#160000',d);
+  const SHIRT=lerpC('#1a2a4a','#6a0000',d);
+  function ov(dx,dy2,rx,ry,fill,stroke,lw=1.5){c.beginPath();c.ellipse(cx+dx*s,cy+dy2*s,rx*s,ry*s,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=lw*s;c.stroke();}}
+  function ln(x1,y1,x2,y2,col,lw){c.beginPath();c.moveTo(cx+x1*s,cy+y1*s);c.lineTo(cx+x2*s,cy+y2*s);c.strokeStyle=col;c.lineWidth=lw*s;c.lineCap='round';c.stroke();}
+  ln(-28,60,-56,106,SHIRT,13);ln(28,60,56,106,SHIRT,13);
   ov(0,86,38,42,SHIRT,SKIN_D,2);
   c.fillStyle=SKIN;c.fillRect(cx-11*s,cy+27*s,22*s,25*s);
   ov(0,-22,52,60,SKIN,SKIN_D,2);
   [-44,-37,-30].forEach(yl=>ln(-17,yl,17,yl,SKIN_D,1));
   ln(-37,-22,-13,-26,'#0a0000',3);ln(13,-26,37,-22,'#0a0000',3);
   ov(-55,-8,8,10,SKIN,SKIN_D,1);ov(55,-8,8,10,SKIN,SKIN_D,1);
-
-  // Eyes
-  if(starOfDavidEyes){
-    drawStarOfDavid(c,cx-24*s,cy-9*s,7*s,'#0038b8');
-    drawStarOfDavid(c,cx+24*s,cy-9*s,7*s,'#0038b8');
-  }else if(d>0){
-    c.save();c.shadowColor='#ff0000';c.shadowBlur=14*s*d;
-    ov(-24,-9,5,5,`rgba(255,${Math.round(255*(1-d))},0,1)`);
-    ov(24,-9,5,5,`rgba(255,${Math.round(255*(1-d))},0,1)`);
-    c.restore();
-  }else{
-    ov(-24,-9,5,5,'#111');ov(24,-9,5,5,'#111');
-  }
-  if(!starOfDavidEyes){ov(-27,-12,2.5,2.5,'white');ov(21,-12,2.5,2.5,'white');}
-
+  if(sodEyes){drawSoD(c,cx-24*s,cy-9*s,7*s,'#0038b8');drawSoD(c,cx+24*s,cy-9*s,7*s,'#0038b8');}
+  else if(d>0){c.save();c.shadowColor='#ff0000';c.shadowBlur=14*s*d;ov(-24,-9,5,5,`rgba(255,${Math.round(255*(1-d))},0,1)`);ov(24,-9,5,5,`rgba(255,${Math.round(255*(1-d))},0,1)`);c.restore();}
+  else{ov(-24,-9,5,5,'#111');ov(24,-9,5,5,'#111');}
+  if(!sodEyes){ov(-27,-12,2.5,2.5,'white');ov(21,-12,2.5,2.5,'white');}
   ov(0,10,5,7,SKIN_D);
-  c.beginPath();c.ellipse(cx,cy+20*s,20*s,9*s,0,Math.PI,Math.PI*2);c.closePath();c.fillStyle='#0a0000';c.fill();
-  const beardH=15+d*10;ov(0,36+d*5,18+d*6,beardH,'#0a0000');
-  if(d>0.3){
-    c.beginPath();c.ellipse(cx,cy+26*s,11*s,5*s,0,0,Math.PI);c.closePath();c.fillStyle='#cc0000';c.fill();
-    c.fillStyle='white';for(let i=0;i<4;i++)c.fillRect(cx+(-16+i*10)*s,cy+22*s,7*s,6*s);
-  }else{
-    c.beginPath();c.ellipse(cx,cy+29*s,9*s,6*s,0,Math.PI,Math.PI*2);c.closePath();c.fillStyle='#aa7744';c.fill();
-  }
+  c.beginPath();c.ellipse(cx,cy+20*s,20*s,9*s,0,Math.PI,Math.PI*2);c.fillStyle='#0a0000';c.fill();
+  ov(0,36+d*5,18+d*6,15+d*10,'#0a0000');
+  if(d>0.3){c.beginPath();c.ellipse(cx,cy+26*s,11*s,5*s,0,0,Math.PI);c.fillStyle='#cc0000';c.fill();c.fillStyle='white';for(let i=0;i<4;i++)c.fillRect(cx+(-16+i*10)*s,cy+22*s,7*s,6*s);}
+  else{c.beginPath();c.ellipse(cx,cy+29*s,9*s,6*s,0,Math.PI,Math.PI*2);c.fillStyle='#aa7744';c.fill();}
   ov(-59,110,12,8,SKIN,SKIN_D,1);ov(59,110,12,8,SKIN,SKIN_D,1);
-
   if(d>0){
     const hornH=32*s*d;
-    [[cx-30*s,cx-44*s,cx-32*s,cx-18*s,cx-22*s],[cx+30*s,cx+44*s,cx+32*s,cx+18*s,cx+22*s]].forEach(([bx,cpx,tipx,cp2x,ex])=>{
-      c.beginPath();
-      c.moveTo(bx,cy-78*s);
-      c.quadraticCurveTo(cpx,cy-78*s-hornH*0.6,tipx,cy-78*s-hornH);
-      c.quadraticCurveTo(cp2x,cy-78*s-hornH*0.4,ex,cy-78*s);
-      c.closePath();
-      c.fillStyle=`rgba(150,0,0,${d})`;c.fill();
-      c.strokeStyle=`rgba(80,0,0,${d})`;c.lineWidth=1.5*s;c.stroke();
-    });
-    c.beginPath();c.moveTo(cx+36*s,cy+100*s);
-    c.bezierCurveTo(cx+70*s,cy+110*s,cx+80*s,cy+85*s,cx+65*s,cy+75*s);
-    c.strokeStyle=`rgba(150,0,0,${d})`;c.lineWidth=4*s;c.lineCap='round';c.stroke();
-    c.beginPath();c.moveTo(cx+65*s,cy+75*s);c.lineTo(cx+72*s,cy+68*s);c.lineTo(cx+59*s,cy+68*s);
-    c.closePath();c.fillStyle=`rgba(150,0,0,${d})`;c.fill();
+    [[cx-30*s,cx-44*s,cx-32*s,cx-18*s,cx-22*s],[cx+30*s,cx+44*s,cx+32*s,cx+18*s,cx+22*s]].forEach(([bx,cpx,tipx,cp2x,ex])=>{c.beginPath();c.moveTo(bx,cy-78*s);c.quadraticCurveTo(cpx,cy-78*s-hornH*0.6,tipx,cy-78*s-hornH);c.quadraticCurveTo(cp2x,cy-78*s-hornH*0.4,ex,cy-78*s);c.closePath();c.fillStyle=`rgba(150,0,0,${d})`;c.fill();c.strokeStyle=`rgba(80,0,0,${d})`;c.lineWidth=1.5*s;c.stroke();});
+    c.beginPath();c.moveTo(cx+36*s,cy+100*s);c.bezierCurveTo(cx+70*s,cy+110*s,cx+80*s,cy+85*s,cx+65*s,cy+75*s);c.strokeStyle=`rgba(150,0,0,${d})`;c.lineWidth=4*s;c.lineCap='round';c.stroke();
+    c.beginPath();c.moveTo(cx+65*s,cy+75*s);c.lineTo(cx+72*s,cy+68*s);c.lineTo(cx+59*s,cy+68*s);c.closePath();c.fillStyle=`rgba(150,0,0,${d})`;c.fill();
   }
-  if(isAngry){
-    c.save();c.shadowColor='#ff0000';c.shadowBlur=30*s;
-    c.beginPath();c.ellipse(cx,cy-22*s,52*s,60*s,0,0,Math.PI*2);
-    c.strokeStyle=`rgba(255,0,0,${0.3+Math.random()*0.3})`;c.lineWidth=4*s;c.stroke();
-    c.restore();
-  }
+  if(angry){c.save();c.shadowColor='#ff0000';c.shadowBlur=30*s;c.beginPath();c.ellipse(cx,cy-22*s,52*s,60*s,0,0,Math.PI*2);c.strokeStyle=`rgba(255,0,0,${0.3+Math.random()*0.3})`;c.lineWidth=4*s;c.stroke();c.restore();}
 }
 
-// ── THINKING ──────────────────────────────────────────────────────────────
-function drawThinking(c,cx,cy,s){
+function drawSoD(c,cx,cy,r,color){
+  c.fillStyle=color;
+  for(let t=0;t<2;t++){c.beginPath();for(let i=0;i<3;i++){const a=(Math.PI/2)+(i*2*Math.PI/3)+(t*Math.PI),x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);if(i===0)c.moveTo(x,y);else c.lineTo(x,y);}c.closePath();c.globalAlpha=0.9;c.fill();c.globalAlpha=1;}
+}
+
+function drawClassroomBg(c,W,H,devil){
+  const wallH=H*0.62;
+  const landscape=(W>H);const boardPct=landscape?0.40:0.38;
+  const wallCol=devil>0?lerpC('#2a2a2a','#2a0a0a',devil):'#2a2a2a';
+  c.fillStyle=wallCol;c.fillRect(0,0,W,wallH);
+  c.fillStyle='#1a1a10';c.fillRect(0,wallH,W,H-wallH);
+  const bx=W*0.20,by=10,bw=W*0.60,bh=H*boardPct;
+  c.fillStyle='#0a3a0a';c.strokeStyle='#2a5a2a';c.lineWidth=5;rrg(c,bx,by,bw,bh,4);c.fill();c.stroke();
+  c.fillStyle='#0c420c';rrg(c,bx+10,by+10,bw-20,bh-20,2);c.fill();
+  c.fillStyle='#b8ffb8';c.textAlign='center';
+  const fs=Math.max(9,Math.min(13,W/52));c.font=`bold ${fs}px "Courier New"`;
+  ['E = mc²','H₂O → H₂ + ½O₂','F = ma','PV = nRT','ΔG = ΔH − TΔS'].forEach((t,i)=>c.fillText(t,bx+bw/2,by+bh*(0.18+i*0.19)));
+  if(W>360){c.fillStyle='#222211';c.strokeStyle='#887755';c.lineWidth=1.5;rrg(c,10,25,110,125,3);c.fill();c.stroke();['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg'].forEach((el,i)=>{const col=i%4,row=Math.floor(i/4),ex=15+col*25,ey=33+row*28;c.fillStyle='#334433';c.strokeStyle='#556655';c.lineWidth=0.8;rrg(c,ex,ey,21,21,2);c.fill();c.stroke();c.fillStyle='#aaffaa';c.font=`8px "Courier New"`;c.textAlign='center';c.fillText(el,ex+10,ey+14);});}
+  c.fillStyle='#111122';c.strokeStyle='#334466';c.lineWidth=1.5;rrg(c,W-115,25,100,110,3);c.fill();c.stroke();
+  c.fillStyle='#8899ff';c.font=`10px "Courier New"`;c.textAlign='center';c.fillText('🔬 SCIENCE',W-65,72);c.fillText('IS COOL',W-65,90);
+  c.fillStyle='#88bbdd';c.strokeStyle='#aaa';c.lineWidth=2;rrg(c,W-115,H*0.46,100,65,2);c.fill();c.stroke();
+  c.beginPath();c.moveTo(W-65,H*0.46);c.lineTo(W-65,H*0.46+65);c.strokeStyle='#aaa';c.lineWidth=1.5;c.stroke();
+  c.beginPath();c.moveTo(W-115,H*0.46+32);c.lineTo(W-15,H*0.46+32);c.stroke();
+}
+
+function drawLabDesk(c,W,H){
+  const dy=H*0.77;
+  c.fillStyle='#5c3d1e';c.fillRect(30,dy,W-60,26);
+  c.fillStyle='#3b2a1a';c.fillRect(30,dy+26,W-60,H-dy-26);
+  c.fillStyle='#5a1a22';rrg(c,30,dy+4,W-60,H-dy-4,3);c.fill();
+  [0.25,0.5,0.75].forEach(t=>{c.beginPath();c.moveTo(30+(W-60)*t,dy+8);c.lineTo(30+(W-60)*t,H-4);c.strokeStyle='#3d0f17';c.lineWidth=2;c.stroke();});
+  c.fillStyle='#1a1a1a';rrg(c,28,dy,W-56,28,2);c.fill();
+  c.fillStyle='#2a2a2a';c.fillRect(28,dy,W-56,4);
+  // Items
+  c.fillStyle='#66ccee';c.strokeStyle='#3399bb';c.lineWidth=1.5;rrg(c,60,dy-30,22,32,2);c.fill();c.stroke();
+  c.beginPath();c.ellipse(71,dy-30,14,7,0,0,Math.PI*2);c.fillStyle='#44aacc';c.fill();c.stroke();
+  [['#8B0000',0],['#006400',1],['#00008B',2]].forEach(([col,i])=>{c.fillStyle=col;c.strokeStyle='#111';c.lineWidth=0.8;rrg(c,W*0.67+i*4,dy-30+i*(-7),44,30,1);c.fill();c.stroke();});
+  c.beginPath();c.ellipse(W*0.82,dy-17,13,16,0,0,Math.PI*2);c.fillStyle='#cc2200';c.fill();
+  c.beginPath();c.moveTo(W*0.82,dy-33);c.lineTo(W*0.82+2,dy-40);c.strokeStyle='#336600';c.lineWidth=2;c.stroke();
+  const lapX=W*0.50,lapY=dy-36,lapW=W*0.16;
+  c.fillStyle='#222';rrg(c,lapX,lapY,lapW,26,2);c.fill();
+  c.fillStyle='#4488cc';rrg(c,lapX+3,lapY+3,lapW-6,18,1);c.fill();
+  c.fillStyle='#cc2200';c.beginPath();c.moveTo(W*0.85-9,dy+30);c.lineTo(W*0.85-7,dy-2);c.lineTo(W*0.85+7,dy-2);c.lineTo(W*0.85+9,dy+30);c.closePath();c.fill();
+  c.beginPath();c.ellipse(W*0.85,dy-2,9,4,0,0,Math.PI*2);c.fillStyle='#c0392b';c.fill();
+  c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.moveTo(W*0.85+3,dy-4);c.lineTo(W*0.85+8,dy-28);c.stroke();
+}
+
+function drawThinking(c,cx,cy,s,W){
   const txt='thinking'+'.'.repeat(Math.floor(dots)%4);
-  // Place above head, left-aligned from centre
-  const bx=cx-40*s, by=cy-95*s;
+  const bx=cx-38*s,by=cy-95*s;
   const fs=Math.max(10,Math.min(13,W*0.03));
   c.font=`bold ${fs}px "Courier New"`;
   [...txt].forEach((ch,i)=>{
     const bob=Math.sin(Date.now()/250+i*0.5)*4;
-    c.fillStyle=isDevil?'#ff4400':'#f39c12';
-    c.textAlign='left';c.fillText(ch,bx+i*(fs*0.72),by+bob);
+    c.fillStyle=isDevil?'#ff4400':'#f39c12';c.textAlign='left';
+    c.fillText(ch,bx+i*(fs*0.72),by+bob);
   });
 }
 
-// ── BUBBLE ────────────────────────────────────────────────────────────────
-function drawBubble(c,cx,cy,s,landscape){
-  const fontSize = Math.max(11, Math.min(14, W*0.032));
-  const padding  = 12;
-  const bbg = isDevil?'#1a0000':'#ffffff';
-  const bbd = isDevil?'#ff2200':'#1a1a1a';
-  const btx = isDevil?'#ff9999':'#111111';
-
-  // Bubble width — in landscape goes on right side; portrait goes above head
-  const bw = landscape
-    ? Math.min(W*0.48, 280)   // right panel
-    : Math.min(W*0.82, 300);  // above head
-
+function drawBubble(c,cx,cy,s,landscape,W,H,text,devil){
+  const fontSize=Math.max(11,Math.min(14,W*0.032));
+  const padding=12;
+  const bbg=devil?'#1a0000':'#ffffff';
+  const bbd=devil?'#ff2200':'#1a1a1a';
+  const btx=devil?'#ff9999':'#111111';
+  const bw=landscape?Math.min(W*0.48,280):Math.min(W*0.82,300);
   c.font=`bold ${fontSize}px Arial, sans-serif`;
-  const words=bubble.split(' '),lines=[];
+  const words=text.split(' '),lines=[];
   let line='';
-  words.forEach(w=>{
-    const test=line?line+' '+w:w;
-    if(c.measureText(test).width<bw-padding*2){line=test;}
-    else{if(line)lines.push(line);line=w;}
-  });
+  words.forEach(w=>{const test=line?line+' '+w:w;if(c.measureText(test).width<bw-padding*2){line=test;}else{if(line)lines.push(line);line=w;}});
   if(line)lines.push(line);
-
-  const lh=fontSize+6, bh=lines.length*lh+padding*2;
-  const headTop = cy - 80*s;
-
-  let rx, ry, tailFromSide;
-  if(landscape){
-    // Right of Keith, vertically centred in scene
-    rx = cx + 60*s;
-    if(rx+bw > W-8) rx = W-bw-8;
-    ry = Math.max(8, headTop - bh*0.3);
-    if(ry+bh > H-8) ry = H-bh-8;
-    tailFromSide = true;
-  } else {
-    // Above head, horizontally centred
-    rx = (W-bw)/2;
-    if(rx < 8) rx = 8;
-    ry = Math.max(8, headTop - bh - 14);
-    tailFromSide = false;
-  }
-
-  // Shadow + fill
+  const lh=fontSize+6,bh=lines.length*lh+padding*2;
+  const headTop=cy-80*s;
+  let rx,ry,sideMode;
+  if(landscape){rx=cx+58*s;if(rx+bw>W-8)rx=W-bw-8;ry=Math.max(8,headTop-bh*0.3);if(ry+bh>H-8)ry=H-bh-8;sideMode=true;}
+  else{rx=(W-bw)/2;if(rx<8)rx=8;ry=Math.max(8,headTop-bh-14);sideMode=false;}
   c.shadowColor='rgba(0,0,0,0.35)';c.shadowBlur=12;c.shadowOffsetX=0;c.shadowOffsetY=3;
-  c.fillStyle=bbg;rr(c,rx,ry,bw,bh,12);c.fill();
+  c.fillStyle=bbg;rrg(c,rx,ry,bw,bh,12);c.fill();
   c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetX=0;c.shadowOffsetY=0;
-  c.strokeStyle=bbd;c.lineWidth=1.5;rr(c,rx,ry,bw,bh,12);c.stroke();
-
-  // Tail
-  if(tailFromSide){
-    // Tail on left side of bubble pointing to Keith
-    const ty = ry + bh*0.5;
-    c.beginPath();
-    c.moveTo(rx, ty-8);
-    c.lineTo(cx+55*s, cy-20*s);
-    c.lineTo(rx, ty+8);
-    c.closePath();
-    c.fillStyle=bbg;c.fill();
-    c.beginPath();c.moveTo(rx,ty-8);c.lineTo(cx+55*s,cy-20*s);c.lineTo(rx,ty+8);
-    c.strokeStyle=bbd;c.lineWidth=1.5;c.stroke();
-    c.beginPath();c.moveTo(rx+1,ty-8);c.lineTo(rx+1,ty+8);
-    c.strokeStyle=bbg;c.lineWidth=3;c.stroke();
-  } else {
-    // Tail on bottom pointing down to head
-    const tailX=Math.max(rx+18,Math.min(cx,rx+bw-18));
-    c.beginPath();c.moveTo(tailX-8,ry+bh);c.lineTo(tailX+8,ry+bh);c.lineTo(cx,headTop-6);
-    c.closePath();c.fillStyle=bbg;c.fill();
-    c.beginPath();c.moveTo(tailX-8,ry+bh);c.lineTo(cx,headTop-6);c.lineTo(tailX+8,ry+bh);
-    c.strokeStyle=bbd;c.lineWidth=1.5;c.stroke();
-    c.beginPath();c.moveTo(tailX-8,ry+bh+1);c.lineTo(tailX+8,ry+bh+1);
-    c.strokeStyle=bbg;c.lineWidth=3;c.stroke();
-  }
-
-  c.fillStyle=btx;c.textAlign='left';
-  c.font=`bold ${fontSize}px Arial, sans-serif`;
+  c.strokeStyle=bbd;c.lineWidth=1.5;rrg(c,rx,ry,bw,bh,12);c.stroke();
+  if(sideMode){const ty=ry+bh*0.5;c.beginPath();c.moveTo(rx,ty-8);c.lineTo(cx+55*s,cy-20*s);c.lineTo(rx,ty+8);c.closePath();c.fillStyle=bbg;c.fill();c.beginPath();c.moveTo(rx,ty-8);c.lineTo(cx+55*s,cy-20*s);c.lineTo(rx,ty+8);c.strokeStyle=bbd;c.lineWidth=1.5;c.stroke();c.beginPath();c.moveTo(rx+1,ty-8);c.lineTo(rx+1,ty+8);c.strokeStyle=bbg;c.lineWidth=3;c.stroke();}
+  else{const tailX=Math.max(rx+18,Math.min(cx,rx+bw-18));c.beginPath();c.moveTo(tailX-8,ry+bh);c.lineTo(tailX+8,ry+bh);c.lineTo(cx,headTop-6);c.closePath();c.fillStyle=bbg;c.fill();c.beginPath();c.moveTo(tailX-8,ry+bh);c.lineTo(cx,headTop-6);c.lineTo(tailX+8,ry+bh);c.strokeStyle=bbd;c.lineWidth=1.5;c.stroke();c.beginPath();c.moveTo(tailX-8,ry+bh+1);c.lineTo(tailX+8,ry+bh+1);c.strokeStyle=bbg;c.lineWidth=3;c.stroke();}
+  c.fillStyle=btx;c.textAlign='left';c.font=`bold ${fontSize}px Arial, sans-serif`;
   lines.forEach((ln,i)=>c.fillText(ln,rx+padding,ry+padding+fontSize+i*lh));
 }
 
-// ── SERVICE WORKER ────────────────────────────────────────────────────────
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  });
-}
+// ── SERVICE WORKER ────────────────────────────────────
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 </script>
 </body>
 </html>
