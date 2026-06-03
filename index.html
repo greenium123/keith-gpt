@@ -289,6 +289,7 @@ body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overfl
     <button class="menu-item" onclick="closeMenuGoTo('treadmill')">🏃 Treadmill Game</button>
     <button class="menu-item" onclick="closeMenuGoTo('whack')">🔨 Whack-a-Keith</button>
     <button class="menu-item" onclick="closeMenuGoTo('ttt')">⭕ Keith Tac Toe</button>
+    <button class="menu-item" onclick="closeMenuGoTo('greenium')" style="background:linear-gradient(135deg,#0a2a0a,#0d3d0d);border:1px solid #00ff88;color:#00ff88">🌿 GREENIUM: Keith Becomes God</button>
     <button class="menu-item" onclick="closeMenuGoTo('logout')" style="color:#e74c3c">🚪 Log Out</button>
     <button id="menu-close" onclick="closeMenu()">Close</button>
   </div>
@@ -298,7 +299,7 @@ body{background:#0d1b2a;font-family:'Courier New',monospace;height:100dvh;overfl
 // ═══════════════════════════════════════════════════════
 // PROXY / API
 // ═══════════════════════════════════════════════════════
-const PROXY_URL = 'https://super-heart-37c5.jadelady1912.workers.dev/';
+const PROXY_URL = 'https://super-heart-37c5.jadelady1912.workers.dev';
 
 async function groqChat(messages, maxTokens=200){
   const res = await fetch(PROXY_URL,{
@@ -464,6 +465,7 @@ function closeMenuGoTo(dest){
   if(dest==='treadmill'){ startTreadmill(); return; }
   if(dest==='whack'){ startWhack(); return; }
   if(dest==='ttt'){ startTTT(); return; }
+  if(dest==='greenium'){ launchGreenium(); return; }
   showScreen('main');
 }
 function logout(){
@@ -1549,6 +1551,17 @@ function endTTT(){
   tttCanvas.removeEventListener('click',onTTTClick);
   document.getElementById('ttt-result').style.display='none';
   showScreen('main');
+}
+
+// ── GREENIUM LAUNCHER ─────────────────────────────────
+function launchGreenium(){
+  // Pass user data to greenium.html via sessionStorage
+  sessionStorage.setItem('greenium_user', JSON.stringify({
+    name: currentUser.name,
+    key: currentUser.key,
+    proxy: PROXY_URL
+  }));
+  window.location.href='greenium.html';
 }
 
 // ── SERVICE WORKER ────────────────────────────────────
