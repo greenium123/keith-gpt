@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Greenium</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#000;font-family:'Courier New',monospace;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#e0f0ff}
+
+/* ─── LOADER ─── */
+#g-loader{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 1s ease}
+#g-loader.out{opacity:0;pointer-events:none}
+#g-loader-particles{position:absolute;inset:0;overflow:hidden}
+.g-particle{position:absolute;border-radius:50%;animation:gFloat linear infinite}
+@keyframes gFloat{0%{transform:translateY(100vh) scale(0);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateY(-20vh) scale(1);opacity:0}}
+#g-title{font-size:clamp(48px,14vw,96px);font-weight:900;letter-spacing:8px;color:#00ff88;text-shadow:0 0 40px #00ff88,0 0 80px #00cc66,0 0 120px #009944;opacity:0;transform:scale(0.5);transition:all 0.9s cubic-bezier(.17,.67,.35,1.2);text-align:center}
+#g-title.show{opacity:1;transform:scale(1)}
+#g-sub{font-size:clamp(12px,3vw,18px);color:#00cc66;letter-spacing:4px;margin-top:12px;opacity:0;transition:opacity 0.8s ease 0.6s;text-align:center}
+#g-sub.show{opacity:1}
+#g-bar-wrap{margin-top:40px;width:200px;height:4px;background:#0a1a0a;border-radius:2px;overflow:hidden}
+#g-bar{height:100%;width:0%;background:linear-gradient(90deg,#00ff88,#00cc44);border-radius:2px;transition:width 2.5s cubic-bezier(.4,0,.2,1);box-shadow:0 0 10px #00ff88}
+#g-atom{font-size:48px;margin-bottom:20px;animation:gSpin 3s linear infinite}
+@keyframes gSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+/* ─── SETUP SCREEN ─── */
+#g-setup{display:none;position:fixed;inset:0;background:linear-gradient(160deg,#000 0%,#0a1a0a 50%,#000 100%);flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+#g-setup.active{display:flex}
+#g-setup-title{font-size:clamp(22px,6vw,36px);font-weight:bold;color:#00ff88;text-shadow:0 0 20px #00ff88;margin-bottom:6px;text-align:center;letter-spacing:3px}
+#g-setup-sub{color:#00aa55;font-size:13px;margin-bottom:32px;text-align:center;letter-spacing:1px}
+.g-setup-group{width:100%;max-width:420px;margin-bottom:20px}
+.g-label{font-size:12px;color:#00cc66;letter-spacing:2px;margin-bottom:8px;display:block}
+.g-input{width:100%;background:#0a1a0a;color:#00ff88;border:1.5px solid #00aa44;border-radius:10px;padding:12px 14px;font-family:'Courier New',monospace;font-size:15px;outline:none;-webkit-appearance:none}
+.g-input:focus{border-color:#00ff88;box-shadow:0 0 12px rgba(0,255,136,0.2)}
+.g-input::placeholder{color:#1a4a2a}
+.g-dim-row{display:flex;gap:10px}
+.g-dim-btn{flex:1;padding:14px;border:2px solid #00aa44;border-radius:10px;background:transparent;color:#00cc66;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;cursor:pointer;transition:all .2s;text-align:center}
+.g-dim-btn.selected{background:#00aa44;color:#000;box-shadow:0 0 16px #00ff88}
+.g-dim-btn:active{transform:scale(0.97)}
+#g-begin-btn{width:100%;max-width:420px;padding:16px;border:none;border-radius:12px;background:linear-gradient(135deg,#00cc66,#009944);color:#000;font-family:'Courier New',monospace;font-size:16px;font-weight:bold;cursor:pointer;letter-spacing:2px;box-shadow:0 0 24px rgba(0,255,136,0.4);transition:all .2s;margin-top:8px}
+#g-begin-btn:active{transform:scale(0.97)}
+.g-worlds-section{width:100%;max-width:420px;margin-bottom:20px}
+.g-worlds-title{font-size:11px;color:#00aa55;letter-spacing:2px;margin-bottom:8px}
+.g-world-item{background:#0a1a0a;border:1px solid #00aa44;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s}
+.g-world-item:active{background:#0d2a0d}
+.g-world-name{color:#00ff88;font-size:13px;font-weight:bold}
+.g-world-meta{color:#00aa44;font-size:10px;margin-top:2px}
+.g-world-del{color:#e74c3c;font-size:11px;cursor:pointer;padding:4px 8px;border:1px solid #e74c3c;border-radius:5px}
+
+/* ─── MAIN GREENIUM ─── */
+#g-main{display:none;position:fixed;inset:0;flex-direction:column;background:#000}
+#g-main.active{display:flex}
+#g-header{background:#050f05;border-bottom:2px solid #00aa44;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px}
+#g-world-name-display{color:#00ff88;font-size:13px;font-weight:bold;letter-spacing:1px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#g-dim-badge{background:#00aa44;color:#000;font-size:9px;font-weight:bold;padding:3px 7px;border-radius:5px;letter-spacing:1px}
+.g-hdr-btn{background:#0a1a0a;color:#00cc66;border:1px solid #00aa44;border-radius:7px;padding:6px 10px;font-family:'Courier New',monospace;font-size:10px;cursor:pointer;white-space:nowrap}
+.g-hdr-btn:active{background:#0d2a0d}
+
+/* ─── WORLD AREA ─── */
+#g-world-area{flex:1;display:flex;min-height:0;overflow:hidden}
+/* Portrait: world on top, keith+chat below */
+/* Landscape: world on left, keith+chat on right */
+#g-canvas-pane{flex:1;position:relative;overflow:hidden;background:#000;min-height:0;min-width:0}
+#g-world-canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+#g-canvas-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:flex-end;justify-content:flex-start;padding:8px}
+#g-world-label{color:rgba(0,255,136,0.5);font-size:10px;letter-spacing:2px}
+#g-thinking-overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55)}
+#g-thinking-overlay.active{display:flex}
+#g-thinking-text{color:#00ff88;font-size:14px;font-weight:bold;letter-spacing:2px;animation:gPulse 1s ease-in-out infinite}
+@keyframes gPulse{0%,100%{opacity:1;text-shadow:0 0 8px #00ff88}50%{opacity:0.5;text-shadow:none}}
+
+#g-side-pane{width:min(42%,220px);background:#050f05;border-left:2px solid #00aa44;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+@media(max-width:600px){
+  #g-world-area{flex-direction:column}
+  #g-side-pane{width:100%;height:200px;border-left:none;border-top:2px solid #00aa44;flex-direction:row}
+}
+#g-keith-pane{padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border-bottom:1px solid #0a2a0a;flex-shrink:0}
+@media(max-width:600px){
+  #g-keith-pane{border-bottom:none;border-right:1px solid #0a2a0a;width:90px;flex-shrink:0;justify-content:center}
+}
+#g-keith-canvas{border-radius:50%;border:2px solid #00aa44;box-shadow:0 0 12px rgba(0,255,136,0.4);background:#0a1a0a}
+#g-keith-name{color:#00cc66;font-size:9px;letter-spacing:2px;margin-top:5px;text-align:center}
+#g-chat-area{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:0}
+#g-chat-area::-webkit-scrollbar{width:3px}
+#g-chat-area::-webkit-scrollbar-thumb{background:#00aa44;border-radius:2px}
+.g-msg{font-size:11px;line-height:1.5;padding:7px 9px;border-radius:8px;max-width:100%;word-break:break-word}
+.g-msg.keith{background:#0a2a0a;color:#00ff88;border-left:2px solid #00ff88}
+.g-msg.user{background:#0a1520;color:#aaddff;border-left:2px solid #4488cc;align-self:flex-end}
+.g-msg.system{background:#1a1a00;color:#aaa;font-size:10px;font-style:italic;border-left:2px solid #444}
+
+/* ─── BOTTOM INPUT ─── */
+#g-bottom{background:#050f05;border-top:2px solid #00aa44;padding:10px 12px calc(12px + env(safe-area-inset-bottom));flex-shrink:0}
+#g-input-row{display:flex;gap:8px;align-items:center}
+#g-input{flex:1;background:#0a1a0a;color:#00ff88;border:1.5px solid #00aa44;border-radius:10px;padding:11px 13px;font-family:'Courier New',monospace;font-size:13px;outline:none;caret-color:#00ff88;-webkit-appearance:none}
+#g-input::placeholder{color:#1a4a2a}
+#g-input:focus{border-color:#00ff88;box-shadow:0 0 8px rgba(0,255,136,0.2)}
+#g-send-btn{background:linear-gradient(135deg,#00cc66,#009944);color:#000;border:none;border-radius:10px;padding:11px 16px;font-family:'Courier New',monospace;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap;box-shadow:0 0 12px rgba(0,255,136,0.3)}
+#g-send-btn:disabled{background:#1a3a1a;color:#444;box-shadow:none}
+#g-send-btn:active{transform:scale(0.97)}
+#g-status{font-size:10px;color:#00aa44;margin-top:4px;min-height:12px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="g-loader">
+  <div id="g-loader-particles"></div>
+  <div id="g-atom">⚗</div>
+  <div id="g-title">GREENIUM</div>
+  <div id="g-sub">KEITH BECOMES GOD</div>
+  <div id="g-bar-wrap"><div id="g-bar"></div></div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div id="g-setup">
+  <div id="g-setup-title">⚗ GREENIUM</div>
+  <div id="g-setup-sub">Create your world. Keith will build it.</div>
+
+  <!-- Saved worlds -->
+  <div class="g-worlds-section" id="g-saved-worlds-section" style="display:none">
+    <div class="g-worlds-title">📂 YOUR SAVED WORLDS</div>
+    <div id="g-worlds-list"></div>
+  </div>
+
+  <div class="g-setup-group">
+    <label class="g-label">🌍 WORLD NAME</label>
+    <input class="g-input" id="g-world-name-input" placeholder="e.g. Quantum Jungle, Chemistry Planet..." maxlength="40">
+  </div>
+  <div class="g-setup-group">
+    <label class="g-label">📐 DIMENSION</label>
+    <div class="g-dim-row">
+      <button class="g-dim-btn selected" id="g-btn-2d" onclick="selectDim('2d')">2D</button>
+      <button class="g-dim-btn" id="g-btn-3d" onclick="selectDim('3d')">3D</button>
+    </div>
+  </div>
+  <div class="g-setup-group">
+    <label class="g-label">✨ FIRST CREATION (optional)</label>
+    <input class="g-input" id="g-first-prompt" placeholder="e.g. A glowing chemistry lab with neon beakers..." maxlength="200">
+  </div>
+  <button id="g-begin-btn" onclick="beginWorld()">⚗ CREATE WORLD →</button>
+  <div style="height:20px"></div>
+</div>
+
+<!-- MAIN GREENIUM -->
+<div id="g-main">
+  <div id="g-header">
+    <div id="g-world-name-display">My World</div>
+    <div id="g-dim-badge">2D</div>
+    <button class="g-hdr-btn" onclick="saveAndClose()">💾 Save & Close</button>
+    <button class="g-hdr-btn" onclick="goBack()">✕ Close</button>
+  </div>
+
+  <div id="g-world-area">
+    <!-- World canvas -->
+    <div id="g-canvas-pane">
+      <canvas id="g-world-canvas"></canvas>
+      <div id="g-canvas-overlay">
+        <div id="g-world-label">GREENIUM WORLD</div>
+      </div>
+      <div id="g-thinking-overlay">
+        <div id="g-thinking-text">⚗ KEITH IS CREATING...</div>
+      </div>
+    </div>
+
+    <!-- Side pane: Keith + chat -->
+    <div id="g-side-pane">
+      <div id="g-keith-pane">
+        <canvas id="g-keith-canvas" width="70" height="70"></canvas>
+        <div id="g-keith-name">KEITH</div>
+      </div>
+      <div id="g-chat-area" id="g-chat"></div>
+    </div>
+  </div>
+
+  <div id="g-bottom">
+    <div id="g-input-row">
+      <input id="g-input" type="text" placeholder="Tell Keith what to add to your world..." maxlength="300">
+      <button id="g-send-btn" onclick="gSend()">ADD →</button>
+    </div>
+    <div id="g-status"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════
+const PROXY = 'https://super-heart-37c5.jadelady1912.workers.dev';
+
+// ═══════════════════════════════════
+// USER SESSION
+// ═══════════════════════════════════
+let gUser = null;
+try { gUser = JSON.parse(sessionStorage.getItem('greenium_user')||'null'); } catch(e){}
+if(!gUser){ window.location.href='index.html'; }
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let gDim = '2d';
+let gWorldName = '';
+let gWorldObjects = [];   // array of drawn objects
+let gChatHistory = [];    // [{role,content}]
+let gCurrentWorld = null; // loaded world key
+let gSending = false;
+let gWorldCanvas, gCtx, gCW, gCH;
+
+// ═══════════════════════════════════
+// LOADER
+// ═══════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  spawnParticles();
+  const title = document.getElementById('g-title');
+  const sub   = document.getElementById('g-sub');
+  const bar   = document.getElementById('g-bar');
+  const loader= document.getElementById('g-loader');
+  setTimeout(() => title.classList.add('show'), 200);
+  setTimeout(() => sub.classList.add('show'), 800);
+  setTimeout(() => bar.style.width = '100%', 300);
+  setTimeout(() => {
+    loader.classList.add('out');
+    setTimeout(() => {
+      loader.style.display = 'none';
+      showSetup();
+    }, 1000);
+  }, 3500);
+});
+
+function spawnParticles(){
+  const wrap = document.getElementById('g-loader-particles');
+  const symbols = ['⚗','⚛','🧪','🔬','⚡','✦','◆'];
+  for(let i=0;i<28;i++){
+    const p = document.createElement('div');
+    p.className = 'g-particle';
+    const size = 8+Math.random()*20;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:rgba(0,${150+Math.floor(Math.random()*105)},${50+Math.floor(Math.random()*80)},${0.3+Math.random()*0.5});
+      animation-duration:${3+Math.random()*5}s;
+      animation-delay:${Math.random()*4}s;
+      font-size:${size*0.8}px;
+      display:flex;align-items:center;justify-content:center;
+      color:rgba(0,255,136,${0.4+Math.random()*0.4});
+      border-radius:${Math.random()>0.5?'50%':'4px'};
+    `;
+    if(Math.random()>0.5) p.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    wrap.appendChild(p);
+  }
+}
+
+// ═══════════════════════════════════
+// SETUP
+// ═══════════════════════════════════
+function showSetup(){
+  document.getElementById('g-setup').classList.add('active');
+  loadSavedWorldsList();
+}
+
+function selectDim(d){
+  gDim = d;
+  document.getElementById('g-btn-2d').classList.toggle('selected', d==='2d');
+  document.getElementById('g-btn-3d').classList.toggle('selected', d==='3d');
+}
+
+function loadSavedWorldsList(){
+  const worlds = getSavedWorlds();
+  const keys = Object.keys(worlds);
+  const section = document.getElementById('g-saved-worlds-section');
+  const list = document.getElementById('g-worlds-list');
+  if(keys.length === 0){ section.style.display='none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = '';
+  keys.reverse().forEach(k => {
+    const w = worlds[k];
+    const item = document.createElement('div');
+    item.className = 'g-world-item';
+    item.innerHTML = `
+      <div onclick="loadWorld('${k}')">
+        <div class="g-world-name">${w.name}</div>
+        <div class="g-world-meta">${w.dim.toUpperCase()} · ${w.objects?.length||0} objects · ${new Date(w.savedAt||Date.now()).toLocaleDateString()}</div>
+      </div>
+      <div class="g-world-del" onclick="deleteWorld('${k}')">🗑</div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function getSavedWorlds(){
+  const key = 'greenium_worlds_' + (gUser?.key||'guest');
+  return JSON.parse(localStorage.getItem(key)||'{}');
+}
+function setSavedWorlds(w){
+  const key = 'greenium_worlds_' + (gUser?.key||'guest');
+  localStorage.setItem(key, JSON.stringify(w));
+}
+function deleteWorld(k){
+  const w = getSavedWorlds();
+  delete w[k];
+  setSavedWorlds(w);
+  loadSavedWorldsList();
+}
+
+function loadWorld(k){
+  const worlds = getSavedWorlds();
+  const w = worlds[k];
+  if(!w) return;
+  gCurrentWorld = k;
+  gWorldName = w.name;
+  gDim = w.dim;
+  gWorldObjects = w.objects||[];
+  gChatHistory = w.chatHistory||[];
+  openMain();
+  // Redraw all objects
+  gWorldObjects.forEach(obj => applyDrawCommand(obj, false));
+  // Restore chat
+  gChatHistory.forEach(msg => {
+    if(msg.role==='user') addChatMsg(msg.content,'user');
+    else if(msg.role==='keith') addChatMsg(msg.content,'keith');
+  });
+}
+
+function beginWorld(){
+  const name = document.getElementById('g-world-name-input').value.trim();
+  if(!name){ alert('Give your world a name!'); return; }
+  gWorldName = name;
+  gCurrentWorld = 'world_'+Date.now();
+  gWorldObjects = [];
+  gChatHistory = [];
+  const firstPrompt = document.getElementById('g-first-prompt').value.trim();
+  openMain();
+  if(firstPrompt) setTimeout(()=>gGenerate(firstPrompt),800);
+  else addChatMsg('My man, your world is ready. Tell me what to create.','keith');
+}
+
+// ═══════════════════════════════════
+// MAIN WORLD
+// ═══════════════════════════════════
+function openMain(){
+  document.getElementById('g-setup').classList.remove('active');
+  document.getElementById('g-main').classList.add('active');
+  document.getElementById('g-world-name-display').textContent = gWorldName;
+  document.getElementById('g-dim-badge').textContent = gDim.toUpperCase();
+  gWorldCanvas = document.getElementById('g-world-canvas');
+  gCtx = gWorldCanvas.getContext('2d');
+  resizeWorldCanvas();
+  window.addEventListener('resize', resizeWorldCanvas);
+  drawWorldBackground();
+  drawKeithIcon();
+  document.getElementById('g-input').addEventListener('keydown', e=>{ if(e.key==='Enter') gSend(); });
+}
+
+function resizeWorldCanvas(){
+  const pane = document.getElementById('g-canvas-pane');
+  gCW = pane.clientWidth;
+  gCH = pane.clientHeight;
+  const dpr = window.devicePixelRatio||1;
+  gWorldCanvas.width  = gCW*dpr;
+  gWorldCanvas.height = gCH*dpr;
+  gWorldCanvas.style.width  = gCW+'px';
+  gWorldCanvas.style.height = gCH+'px';
+  gCtx.setTransform(dpr,0,0,dpr,0,0);
+  redrawWorld();
+}
+
+function redrawWorld(){
+  drawWorldBackground();
+  gWorldObjects.forEach(obj => applyDrawCommand(obj, false));
+}
+
+function drawWorldBackground(){
+  const c = gCtx;
+  if(gDim==='3d'){
+    // Sky
+    const sky = c.createLinearGradient(0,0,0,gCH);
+    sky.addColorStop(0,'#000a18');
+    sky.addColorStop(0.6,'#0a1a0a');
+    sky.addColorStop(1,'#0d2a0d');
+    c.fillStyle=sky; c.fillRect(0,0,gCW,gCH);
+    // Stars
+    for(let i=0;i<60;i++){
+      c.fillStyle=`rgba(0,255,136,${0.2+Math.random()*0.5})`;
+      c.beginPath();c.arc(Math.random()*gCW,Math.random()*gCH*0.55,Math.random()*1.5,0,Math.PI*2);c.fill();
+    }
+    // Ground perspective
+    const grd = c.createLinearGradient(0,gCH*0.6,0,gCH);
+    grd.addColorStop(0,'#0a2a0a');grd.addColorStop(1,'#000');
+    c.fillStyle=grd;c.fillRect(0,gCH*0.6,gCW,gCH*0.4);
+    // Grid lines for 3D feel
+    c.strokeStyle='rgba(0,255,136,0.08)';c.lineWidth=1;
+    const vp={x:gCW/2,y:gCH*0.6};
+    for(let i=0;i<=10;i++){
+      const x=gCW*i/10;
+      c.beginPath();c.moveTo(x,gCH);c.lineTo(vp.x,vp.y);c.stroke();
+    }
+    for(let i=0;i<=6;i++){
+      const y=gCH*0.6+gCH*0.4*i/6;
+      const spread=(y-vp.y)/(gCH-vp.y);
+      const x1=vp.x-(gCW*0.5)*spread;const x2=vp.x+(gCW*0.5)*spread;
+      c.beginPath();c.moveTo(x1,y);c.lineTo(x2,y);c.stroke();
+    }
+  } else {
+    // 2D background
+    const bg = c.createLinearGradient(0,0,0,gCH);
+    bg.addColorStop(0,'#000a05');
+    bg.addColorStop(1,'#000500');
+    c.fillStyle=bg;c.fillRect(0,0,gCW,gCH);
+    // Grid
+    c.strokeStyle='rgba(0,255,136,0.05)';c.lineWidth=1;
+    const gs=40;
+    for(let x=0;x<gCW;x+=gs){c.beginPath();c.moveTo(x,0);c.lineTo(x,gCH);c.stroke();}
+    for(let y=0;y<gCH;y+=gs){c.beginPath();c.moveTo(0,y);c.lineTo(gCW,y);c.stroke();}
+    // Subtle border
+    c.strokeStyle='rgba(0,255,136,0.15)';c.lineWidth=2;
+    c.strokeRect(2,2,gCW-4,gCH-4);
+  }
+}
+
+function drawKeithIcon(){
+  const c = document.getElementById('g-keith-canvas').getContext('2d');
+  c.clearRect(0,0,70,70);
+  c.fillStyle='#0a1a0a';
+  c.beginPath();c.arc(35,35,34,0,Math.PI*2);c.fill();
+  c.strokeStyle='#00aa44';c.lineWidth=2;
+  c.beginPath();c.arc(35,35,34,0,Math.PI*2);c.stroke();
+  drawSmallKeithFace(c,35,38,0.52);
+}
+
+function drawSmallKeithFace(ctx,cx,cy,s){
+  function ov(dx,dy,rx,ry,fill){ctx.beginPath();ctx.ellipse(cx+dx*s,cy+dy*s,rx*s,ry*s,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();}
+  ov(0,-10,44,52,'#3a1f0a');
+  ov(-50,-8,8,10,'#3a1f0a');ov(50,-8,8,10,'#3a1f0a');
+  ov(-20,-14,5,5,'#111');ov(20,-14,5,5,'#111');
+  ov(-22,-16,2.5,2.5,'white');ov(18,-16,2.5,2.5,'white');
+  for(const yl of[-40,-33,-26]){ctx.beginPath();ctx.moveTo(cx-15*s,cy+yl*s);ctx.lineTo(cx+15*s,cy+yl*s);ctx.strokeStyle='#1e0f00';ctx.lineWidth=1*s;ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(cx-36*s,cy-22*s);ctx.lineTo(cx-12*s,cy-26*s);ctx.strokeStyle='#0a0000';ctx.lineWidth=3*s;ctx.lineCap='round';ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+12*s,cy-26*s);ctx.lineTo(cx+36*s,cy-22*s);ctx.strokeStyle='#0a0000';ctx.lineWidth=3*s;ctx.stroke();
+  ov(0,8,5,7,'#1e0f00');
+  ctx.beginPath();ctx.ellipse(cx,cy+18*s,18*s,8*s,0,Math.PI,Math.PI*2);ctx.fillStyle='#0a0000';ctx.fill();
+  ov(0,32,16,14,'#0a0000');
+  ctx.beginPath();ctx.ellipse(cx,cy+26*s,8*s,5*s,0,Math.PI,Math.PI*2);ctx.fillStyle='#aa7744';ctx.fill();
+}
+
+// ═══════════════════════════════════
+// GENERATE
+// ═══════════════════════════════════
+async function gSend(){
+  const inp = document.getElementById('g-input');
+  const prompt = inp.value.trim();
+  if(!prompt||gSending) return;
+  inp.value='';
+  await gGenerate(prompt);
+}
+
+async function gGenerate(prompt){
+  if(gSending) return;
+  gSending=true;
+  document.getElementById('g-send-btn').disabled=true;
+  document.getElementById('g-thinking-overlay').classList.add('active');
+  gSetStatus('Keith is creating...');
+  addChatMsg(prompt,'user');
+  gChatHistory.push({role:'user',content:prompt});
+
+  try{
+    // Build conversation context
+    const history = gChatHistory.slice(-8).map(m=>({role:m.role==='keith'?'assistant':'user',content:m.content}));
+
+    const systemPrompt = `You are Keith GPT — God of the Greenium world. The user is building a ${gDim} world called "${gWorldName}".
+Your job is TWO things:
+1. Write a SHORT in-character response (1-2 sentences, old-man calm voice, mention "electron gangsta" if chemistry relevant)
+2. Generate drawing commands to visually render what was requested onto the canvas
+
+CRITICAL: Respond ONLY with valid JSON in this exact format, nothing else:
+{
+  "speech": "Keith's 1-2 sentence response here",
+  "objects": [
+    {
+      "type": "one of: circle|rect|text|line|polygon|ellipse|arc|compound",
+      "label": "short description",
+      "x": 0.5,
+      "y": 0.5,
+      "w": 0.15,
+      "h": 0.1,
+      "r": 0.05,
+      "color": "#00ff88",
+      "fill": "#00aa44",
+      "text": "text content if type=text",
+      "fontSize": 0.04,
+      "points": [[0.1,0.2],[0.3,0.4]],
+      "children": []
+    }
+  ]
+}
+
+RULES:
+- All coordinates are 0.0-1.0 (proportional to canvas size)
+- Be CREATIVE and VISUAL — draw recognizable things, not just boxes
+- For ${gDim==='3d'?'3D: position things with perspective — lower y = farther away, larger objects near bottom':'2D: use the full canvas space creatively'}
+- Use vibrant greens, teals, and neon colors for the Greenium aesthetic
+- Generate 3-8 objects per request to make it visually rich
+- compound type: use children array for complex multi-part objects
+- For text: x,y is centre position, fontSize is 0.0-1.0 relative to canvas height
+- Colors: neon greens (#00ff88, #00cc66), teals (#00ccaa), cyans, golds for accents
+- Make things that actually LOOK like what was requested
+`;
+
+    const response = await fetch(PROXY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system',content:systemPrompt},
+          ...history,
+          {role:'user',content:prompt}
+        ],
+        max_tokens:1200,
+        temperature:0.85
+      })
+    });
+
+    if(!response.ok) throw new Error('API error '+response.status);
+    const data = await response.json();
+    const raw = data.choices[0].message.content.trim();
+
+    // Parse JSON — strip any markdown fences
+    const cleaned = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(cleaned);
+
+    const speech = parsed.speech||"My man, it is done.";
+    const objects = parsed.objects||[];
+
+    // Draw objects
+    objects.forEach(obj=>{
+      gWorldObjects.push(obj);
+      applyDrawCommand(obj, true);
+    });
+
+    addChatMsg(speech,'keith');
+    gChatHistory.push({role:'keith',content:speech});
+
+    // Speak
+    speak(speech);
+    gSetStatus('✓ Created!');
+
+  } catch(e){
+    console.error(e);
+    // Try to extract speech if partial JSON
+    let fallback = "My man, I ran into a little trouble creating that. Try describing it differently.";
+    addChatMsg(fallback,'keith');
+    gSetStatus('Error — try again');
+  }
+
+  gSending=false;
+  document.getElementById('g-send-btn').disabled=false;
+  document.getElementById('g-thinking-overlay').classList.remove('active');
+  setTimeout(()=>gSetStatus(''),3000);
+}
+
+// ═══════════════════════════════════
+// DRAW ENGINE
+// ═══════════════════════════════════
+function applyDrawCommand(obj, animate){
+  const c = gCtx;
+  if(!c) return;
+
+  const x  = (obj.x||0.5)*gCW;
+  const y  = (obj.y||0.5)*gCH;
+  const w  = (obj.w||0.1)*gCW;
+  const h  = (obj.h||0.1)*gCH;
+  const r  = (obj.r||obj.w||0.05)*Math.min(gCW,gCH);
+  const fs = (obj.fontSize||0.04)*gCH;
+
+  c.save();
+
+  // Glow effect
+  if(obj.color||obj.fill){
+    const glowColor = obj.color||obj.fill;
+    c.shadowColor = glowColor;
+    c.shadowBlur  = 12;
+  }
+
+  switch(obj.type){
+
+    case 'circle':
+      c.beginPath();c.arc(x,y,r,0,Math.PI*2);
+      c.fillStyle=obj.fill||obj.color||'#00ff88';c.fill();
+      if(obj.color&&obj.color!==obj.fill){c.strokeStyle=obj.color;c.lineWidth=2;c.stroke();}
+      break;
+
+    case 'rect':
+      c.fillStyle=obj.fill||obj.color||'#00aa44';
+      c.fillRect(x-w/2,y-h/2,w,h);
+      if(obj.color&&obj.color!==obj.fill){c.strokeStyle=obj.color;c.lineWidth=2;c.strokeRect(x-w/2,y-h/2,w,h);}
+      break;
+
+    case 'ellipse':
+      c.beginPath();c.ellipse(x,y,w/2,h/2,0,0,Math.PI*2);
+      c.fillStyle=obj.fill||obj.color||'#00ff88';c.fill();
+      if(obj.color&&obj.color!==obj.fill){c.strokeStyle=obj.color;c.lineWidth=2;c.stroke();}
+      break;
+
+    case 'text':
+      c.font=`bold ${fs}px "Courier New", monospace`;
+      c.fillStyle=obj.color||'#00ff88';
+      c.textAlign='center';c.textBaseline='middle';
+      c.fillText(obj.text||'',x,y);
+      break;
+
+    case 'line':
+      if(obj.points&&obj.points.length>=2){
+        c.beginPath();
+        c.moveTo(obj.points[0][0]*gCW,obj.points[0][1]*gCH);
+        obj.points.slice(1).forEach(p=>c.lineTo(p[0]*gCW,p[1]*gCH));
+        c.strokeStyle=obj.color||'#00ff88';
+        c.lineWidth=(obj.lineWidth||0.004)*Math.min(gCW,gCH);
+        c.lineCap='round';c.lineJoin='round';
+        c.stroke();
+      }
+      break;
+
+    case 'polygon':
+      if(obj.points&&obj.points.length>=3){
+        c.beginPath();
+        c.moveTo(obj.points[0][0]*gCW,obj.points[0][1]*gCH);
+        obj.points.slice(1).forEach(p=>c.lineTo(p[0]*gCW,p[1]*gCH));
+        c.closePath();
+        c.fillStyle=obj.fill||obj.color||'#00ff88';c.fill();
+        if(obj.color){c.strokeStyle=obj.color;c.lineWidth=2;c.stroke();}
+      }
+      break;
+
+    case 'arc':
+      c.beginPath();
+      c.arc(x,y,r,obj.startAngle||0,obj.endAngle||Math.PI);
+      c.strokeStyle=obj.color||'#00ff88';
+      c.lineWidth=(obj.lineWidth||0.005)*Math.min(gCW,gCH);
+      c.stroke();
+      break;
+
+    case 'compound':
+      (obj.children||[]).forEach(child=>applyDrawCommand(child,false));
+      break;
+
+    default:
+      // Fallback: draw a glowing circle
+      c.beginPath();c.arc(x,y,r,0,Math.PI*2);
+      c.fillStyle=obj.fill||obj.color||'#00ff88';c.fill();
+  }
+
+  c.restore();
+}
+
+// ═══════════════════════════════════
+// CHAT
+// ═══════════════════════════════════
+function addChatMsg(text, who){
+  const area = document.getElementById('g-chat-area');
+  const div = document.createElement('div');
+  div.className = 'g-msg '+who;
+  div.textContent = (who==='keith'?'Keith: ':who==='user'?'You: ':'')+text;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function gSetStatus(msg){
+  document.getElementById('g-status').textContent=msg;
+}
+
+// ═══════════════════════════════════
+// SPEECH
+// ═══════════════════════════════════
+function speak(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const voices=window.speechSynthesis.getVoices();
+  const pick=voices.find(v=>v.name.includes('Alex')||v.name.includes('Fred')||v.lang.startsWith('en'))||null;
+  if(pick)u.voice=pick;
+  u.rate=0.78;u.pitch=0.85;u.volume=1;
+  window.speechSynthesis.speak(u);
+}
+window.speechSynthesis&&(window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices());
+
+// ═══════════════════════════════════
+// SAVE / CLOSE
+// ═══════════════════════════════════
+function saveAndClose(){
+  if(!gCurrentWorld) return;
+  const worlds = getSavedWorlds();
+  worlds[gCurrentWorld]={
+    name: gWorldName,
+    dim:  gDim,
+    objects: gWorldObjects,
+    chatHistory: gChatHistory,
+    savedAt: Date.now()
+  };
+  setSavedWorlds(worlds);
+  goBack();
+}
+
+function goBack(){
+  window.location.href='index.html';
+}
+
+function getSavedWorlds(){
+  const key='greenium_worlds_'+(gUser?.key||'guest');
+  return JSON.parse(localStorage.getItem(key)||'{}');
+}
+function setSavedWorlds(w){
+  const key='greenium_worlds_'+(gUser?.key||'guest');
+  localStorage.setItem(key,JSON.stringify(w));
+}
+</script>
+</body>
+</html>
