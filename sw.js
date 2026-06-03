@@ -1,4 +1,4 @@
-const CACHE = 'keith-gpt-v8';
+const CACHE = 'keith-gpt-v9';
 const ASSETS = [
   './',
   './index.html',
