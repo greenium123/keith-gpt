@@ -200,6 +200,79 @@ body{background:#000;font-family:'Courier New',monospace;height:100dvh;overflow:
       </div>
       <div id="g-blender-info">HOW TO USE: Blender → Scripting tab → New → Paste → Run Script ▶</div>
     </div>
+    <!-- BLENDER LIVE RENDER -->
+    <div id="g-live-wrap" style="flex:1;position:relative;overflow:hidden;display:none;flex-direction:column;background:#050200">
+      <div style="background:#1a0a00;border-bottom:2px solid #ff9900;padding:8px 14px;flex-shrink:0;display:flex;align-items:center;gap:8px">
+        <h3 style="color:#ff9900;font-size:12px;letter-spacing:2px;flex:1">&#x1F3A5; BLENDER LIVE RENDER</h3>
+        <span id="g-live-status" style="font-size:9px;color:#e74c3c">&#x25CF; Disconnected</span>
+        <button class="ghb" style="border-color:#ff9900;color:#ff9900" onclick="checkServer()">&#x21BB; Connect</button>
+        <button class="ghb" style="border-color:#ff6600;color:#ff8800" onclick="resetLiveScene()">&#x1F5D1; Reset</button>
+      </div>
+      <div style="flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0a0500">
+        <img id="g-render-img" style="max-width:100%;max-height:100%;display:none;object-fit:contain" alt="Render">
+        <div id="g-render-placeholder" style="color:#553300;font-size:12px;text-align:center;padding:20px;line-height:1.8">
+          &#x1F3A5; BLENDER LIVE RENDER<br><br>
+          <span style="font-size:10px;color:#443300">
+          1. Install: <strong style="color:#ff9900">pip install flask flask-cors</strong><br>
+          2. Run: <strong style="color:#ff9900">python keith_blender_server.py --blender /path/to/blender</strong><br>
+          3. Click Connect above<br>
+          4. Ask Keith to build anything!<br><br>
+          Keith will generate Blender Python,<br>your desktop will render it,<br>and the result appears here.
+          </span>
+        </div>
+        <div id="g-rendering-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;flex-direction:column;gap:12px">
+          <div style="color:#ff9900;font-size:14px;font-weight:bold;letter-spacing:3px;animation:gPulse 1s ease-in-out infinite">&#x1F3A5; RENDERING IN BLENDER...</div>
+          <div id="g-render-progress" style="color:#886644;font-size:10px"></div>
+        </div>
+      </div>
+      <div style="padding:8px 12px;background:#0a0500;border-top:1px solid #331a00;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+        <select id="g-samples-sel" style="background:#050200;color:#ff9900;border:1px solid #553300;border-radius:6px;padding:5px 8px;font-family:monospace;font-size:10px">
+          <option value="32">32 samples (fast)</option>
+          <option value="64" selected>64 samples (balanced)</option>
+          <option value="128">128 samples (quality)</option>
+          <option value="256">256 samples (high)</option>
+          <option value="512">512 samples (max)</option>
+        </select>
+        <select id="g-res-sel" style="background:#050200;color:#ff9900;border:1px solid #553300;border-radius:6px;padding:5px 8px;font-family:monospace;font-size:10px">
+          <option value="400x300">400×300 (fast)</option>
+          <option value="800x600" selected>800×600 (HD)</option>
+          <option value="1280x720">1280×720 (720p)</option>
+          <option value="1920x1080">1920×1080 (1080p)</option>
+        </select>
+        <button class="bldr-btn" style="border-color:#ff9900;color:#ff9900" onclick="reRender()">&#x25B6; Re-Render</button>
+        <button class="bldr-btn" onclick="downloadRender()">&#x2B07; Save PNG</button>
+      </div>
+    </div>
+    <!-- BLENDER LIVE PANEL -->
+    <div id="g-live-wrap" style="flex:1;position:relative;overflow:hidden;display:none;flex-direction:column;background:#0a0500">
+      <div style="background:#1a0800;border-bottom:2px solid #aa4400;padding:8px 14px;flex-shrink:0;display:flex;align-items:center;gap:8px">
+        <h3 style="color:#cc6600;font-size:12px;letter-spacing:2px;flex:1">&#x1F7E0; BLENDER LIVE</h3>
+        <div id="g-live-status" style="font-size:9px;padding:3px 8px;border-radius:4px;background:#2a0a00;color:#ff4400">NOT CONNECTED</div>
+        <button class="ghb" style="border-color:#aa4400;color:#cc6600" onclick="connectBlender()">Connect</button>
+        <button class="ghb" style="border-color:#aa4400;color:#cc6600" onclick="renderBlender()">&#x25B6; Render</button>
+      </div>
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:12px;background:#050200;min-height:0">
+        <div id="g-live-img-wrap" style="width:100%;flex:1;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;overflow:hidden;border:1px solid #331a00;min-height:0">
+          <div id="g-live-placeholder" style="text-align:center;color:#553300;font-size:11px;padding:20px;line-height:1.8">
+            <div style="font-size:32px;margin-bottom:8px">&#x1F7E0;</div>
+            <strong style="color:#aa5500">BLENDER LIVE MODE</strong><br><br>
+            1. Open Blender on your desktop<br>
+            2. Go to Scripting tab &#x2192; New<br>
+            3. Paste <strong style="color:#ff8800">greenium_blender_server.py</strong><br>
+            4. Click Run Script &#x25B6;<br>
+            5. Click <strong style="color:#cc6600">Connect</strong> above<br><br>
+            <span style="color:#664422;font-size:9px">Renders will appear here in real-time</span>
+          </div>
+          <img id="g-live-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain" alt="Blender render">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;flex-shrink:0">
+          <button class="bldr-btn" onclick="clearBlenderLive()" style="border-color:#aa4400;color:#cc6600">&#x1F5D1; Clear Scene</button>
+          <button class="bldr-btn" onclick="getSceneInfo()" style="border-color:#aa4400;color:#cc6600">&#x1F4CB; Scene Info</button>
+          <button class="bldr-btn" onclick="renderBlender(64)" style="border-color:#aa4400;color:#cc6600">&#x26A1; Quick (64 samples)</button>
+          <button class="bldr-btn" onclick="renderBlender(256)" style="border-color:#aa4400;color:#cc6600">&#x2728; Quality (256 samples)</button>
+        </div>
+      </div>
+    </div>
     <div id="g-side">
       <div id="g-kbox"><canvas id="g-kface" width="64" height="64"></canvas><div class="gkn">KEITH GPT</div></div>
       <div id="g-chat"></div>
@@ -280,6 +353,9 @@ function beginWorld(){
   } else if(gDim==='blender'){
     initBlenderScript();
     setTimeout(()=>{addMsg("My man, I'll generate Blender Python scripts for you. Describe what to build and copy the script into Blender's Scripting tab.",'k');if(fp)setTimeout(()=>gGenerate(fp),500);},400);
+  } else if(gDim==='blender-live'){
+    liveSceneCode=[];
+    setTimeout(()=>{addMsg("My man, I'll render your world in Blender. Make sure keith_blender_server.py is running on your desktop, then tell me what to build.",'k');if(fp)setTimeout(()=>gGenerate(fp),500);},400);
   } else {
     if(fp)setTimeout(()=>gGenerate(fp),400);
     else addMsg('My man, your canvas is blank. Tell me what to create.','k');
@@ -300,6 +376,9 @@ function openMain(){
   document.getElementById('g-3d-wrap').style.display=gDim==='3d'?'block':'none';
   document.getElementById('g-2d-wrap').style.display=gDim==='2d'?'block':'none';
   const bw=document.getElementById('g-blender-wrap');if(bw){bw.style.display=gDim==='blender'?'flex':'none';if(gDim==='blender')bw.style.flexDirection='column';}
+  {const liveWrap=document.getElementById('g-live-wrap');if(liveWrap){liveWrap.style.display=gDim==='blender_live'?'flex':'none';if(gDim==='blender_live')liveWrap.style.flexDirection='column';}}
+  const lw=document.getElementById('g-live-wrap');if(lw){lw.style.display=gDim==='blender-live'?'flex':'none';if(gDim==='blender-live')lw.style.flexDirection='column';}
+  if(gDim==='blender-live')setTimeout(checkServer,500);
   {const bd=document.getElementById('g-dbadge');if(gDim==='blender'){bd.textContent='BLENDER';bd.style.background='#ff6600';bd.style.color='#fff';}else{bd.textContent=gDim.toUpperCase();bd.style.background='';bd.style.color='';}}
   document.getElementById('g-inp').placeholder=gDim==='blender'?'Describe what to build in Blender...':'Add to your world...';
   document.getElementById('g-blender-wrap').style.display=gDim==='blender'?'flex':'none';
@@ -960,6 +1039,28 @@ async function gGenerate(prompt){
   try{
     const history=gChat.slice(-8).map(m=>({role:m.r==='k'?'assistant':'user',content:m.c}));
 
+    if(gDim==='blender-live'){
+      // Live Blender render mode — generate code AND send to server
+      const lsys='You are Keith GPT generating Blender 4.x Python for "'+gName+'".' +'bpy is imported. make_material(name,(r,g,b),rough,metal,emit,emit_str,alpha) as mat() and link(obj,mat) are defined.' +'Ground plane, lights and world sky already set up. Do NOT clear scene, reimport bpy, or redefine helpers.' +'RESPOND with valid JSON only (no markdown): {"speech":"Keith 1-2 sentence response","code":"# python code"}' +'Write production Blender Python. Use bpy.ops.mesh primitives (sphere, cube, cylinder, cone, torus, plane). ' +'Add modifiers: obj.modifiers.new(name,type) for SUBSURF(levels=3), BEVEL(width=0.05), DISPLACE(texture=noise). ' +'Materials: mat("name",(r,g,b),roughness,metalness) then link(obj,material). ' +'Position at z=0 for ground. Use parenting for complex objects: child.parent=parent_obj. ' +'Build detailed complete scenes. For chemistry mention electron gangsta for F,O,N,Cl.';
+            const lres=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:lsys},...history,{role:'user',content:prompt}],max_tokens:2000,temperature:0.88})});
+      if(!lres.ok)throw new Error('API '+lres.status);
+      const ldata=await lres.json();
+      const lraw=ldata.choices[0].message.content.trim().replace(/```json|```/g,'').trim();
+      const ls=lraw.indexOf('{'),le=lraw.lastIndexOf('}');
+      const lp=JSON.parse(lraw.slice(ls,le+1));
+      const lspeech=lp.speech||'My man, sending to Blender.';
+      const lcode=lp.code||'';
+      liveSceneCode.push(lcode);
+      gChat.push({r:'k',c:lspeech});
+      addMsg(lspeech+' Rendering now...','k');
+      speak(lspeech);
+      // Send to Blender server
+      await sendToBlenderServer(lcode);
+      gSending=false;document.getElementById('g-send').disabled=false;
+      document.getElementById('g-think').classList.remove('on');
+      return;
+    }
+
     if(gDim==='blender'){
       const bsys='You are Keith GPT generating Blender 4.x Python (bpy) for a scene called "'+gName+'". '
         +'bpy is imported. make_material(name,(r,g,b),rough,metal,emit,emit_str,alpha) and link(obj,mat) are defined. '
@@ -990,9 +1091,7 @@ async function gGenerate(prompt){
         +'Text: bpy.ops.object.text_add(location=(x,y,z)); o=bpy.context.active_object; o.data.body="text"; o.data.extrude=0.05\n'
         +'Curves: bpy.ops.curve.primitive_bezier_curve_add()\n'
         +'RULES: Build detailed scenes. z=0 is ground. For organic shapes use subdivision. For terrain use plane+displace+subdiv. '
-        +'Group with empty parents. For chemistry mention electron gangsta for F,O,N,Cl.';
-
-      const bres=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:bsys},...history,{role:'user',content:prompt}],max_tokens:2500,temperature:0.88})});
+        +'Group with empty parents. For chemistry mention electron gangsta for F,O,N,Cl.';        const bres=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:bsys},...history,{role:'user',content:prompt}],max_tokens:2500,temperature:0.88})});
       if(!bres.ok)throw new Error('API '+bres.status);
       const bdata=await bres.json();
       const braw=bdata.choices[0].message.content.trim().replace(/```json|```/g,'').trim();
@@ -1008,6 +1107,35 @@ async function gGenerate(prompt){
       setTimeout(()=>setStat(''),4000);return;
     }
 
+
+    if(gDim==='blender_live'){
+      if(!blenderConnected){ addMsg('Connect to Blender first using the Connect button.','k'); gSending=false;document.getElementById('g-send').disabled=false;document.getElementById('g-think').classList.remove('on');return; }
+      const lsys='You are Keith GPT generating Blender 4.x Python for "'+gName+'". '
+        +'bpy is imported. make_material(name,(r,g,b),rough,metal,emit,emit_str,alpha) as mat() and link(obj,mat) are defined. '
+        +'Ground plane, lights and world sky already set up. Do NOT clear scene, reimport bpy, or redefine helpers. '
+        +'RESPOND with valid JSON only (no markdown): {"speech":"Keith 1-2 sentence response","code":"# python code"} '
+        +'Write production Blender Python. Use bpy.ops.mesh primitives (sphere, cube, cylinder, cone, torus, plane). '
+        +'Add modifiers: obj.modifiers.new(name,type) for SUBSURF(levels=3), BEVEL(width=0.05), DISPLACE(texture=noise). '
+        +'Materials: mat("name",(r,g,b),roughness,metalness) then link(obj,material). '
+        +'Position at z=0 for ground. Build detailed complete scenes. For chemistry mention electron gangsta for F,O,N,Cl.';
+      const lres=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:lsys},...history,{role:'user',content:prompt}],max_tokens:2000,temperature:0.88})});
+      if(!lres.ok)throw new Error('API '+lres.status);
+      const ldata=await lres.json();
+      const lraw=ldata.choices[0].message.content.trim().replace(/```json|```/g,'').trim();
+      const ls=lraw.indexOf('{'),le=lraw.lastIndexOf('}');
+      const lp=JSON.parse(lraw.slice(ls,le+1));
+      const lspeech=lp.speech||'My man, building it now.';
+      const lcode=lp.code||'';
+      // Send to Blender and render
+      setStat('Sending to Blender...');
+      const sendResult=await blenderFetch('exec_and_render',{action:'render_and_get',code:lcode,width:512,height:384,samples:64});
+      if(sendResult.ok&&sendResult.image){showRender(sendResult.image);}
+      else if(lcode){appendScript('\n# -- '+prompt+' --\n'+lcode);addMsg(lspeech+' (Could not auto-render — copy script to Blender manually)','k');}
+      else{addMsg(lspeech,'k');}
+      addMsg(lspeech,'k');gChat.push({r:'k',c:lspeech});speak(lspeech);setStat('Done!');
+      gSending=false;document.getElementById('g-send').disabled=false;document.getElementById('g-think').classList.remove('on');
+      setTimeout(()=>setStat(''),3000);return;
+    }
     const sys3d='You are Keith GPT, God of 3D planet world "'+gName+'" (Three.js, planet radius ~100). '
       +'RESPOND ONLY with valid JSON (no markdown): {"speech":"Keith 1-2 sentence calm response","objects":[...]}\n\n'
       +'3D TYPES (lat/lon degrees, alt=units above surface):\n'
@@ -1075,6 +1203,183 @@ function addMsg(t,r){const ch=document.getElementById('g-chat'),d=document.creat
 function setStat(m){document.getElementById('g-stat').textContent=m;}
 function speak(t){if(!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const v=window.speechSynthesis.getVoices();const p=v.find(x=>x.name.includes('Alex')||x.lang.startsWith('en'))||null;if(p)u.voice=p;u.rate=0.78;u.pitch=0.85;u.volume=1;window.speechSynthesis.speak(u);}
 window.speechSynthesis&&(window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices());
+// ═══ BLENDER LIVE SERVER ══════════════════════════════════════════════════
+const SERVER_URL = 'http://localhost:7432';
+let serverConnected = false;
+let liveSceneCode = [];
+let lastRenderImg = null;
+
+async function checkServer(){
+  const el=document.getElementById('g-live-status');
+  const ss=document.getElementById('g-server-status');
+  try{
+    const res=await fetch(SERVER_URL+'/ping',{method:'GET',signal:AbortSignal.timeout(3000)});
+    if(res.ok){
+      const data=await res.json();
+      serverConnected=true;
+      const msg='Connected — '+data.blender.split(/[\/]/).pop();
+      if(el){el.textContent='\u25CF '+msg;el.style.color='#00ff88';}
+      if(ss){ss.textContent='\u25CF '+msg;ss.style.color='#00ff88';}
+      document.getElementById('g-render-placeholder').innerHTML='<div style="color:#4a8a30;font-size:12px">\u2713 Connected to Blender server<br><br><span style="font-size:10px;color:#336622">Ask Keith to build something!</span></div>';
+    }
+  }catch(e){
+    serverConnected=false;
+    if(el){el.textContent='\u25CF Disconnected';el.style.color='#e74c3c';}
+    if(ss){ss.textContent='\u25CF Server not running';ss.style.color='#e74c3c';}
+  }
+}
+
+async function sendToBlenderServer(code){
+  if(!serverConnected){await checkServer();}
+  if(!serverConnected){
+    addMsg('My man, the Blender server is not running. Start keith_blender_server.py on your desktop first.','k');
+    return;
+  }
+  // Show rendering overlay
+  const ov=document.getElementById('g-rendering-overlay');
+  if(ov)ov.style.display='flex';
+  const prog=document.getElementById('g-render-progress');
+  if(prog)prog.textContent='Generating scene...';
+
+  const sel=document.getElementById('g-res-sel');
+  const [w,h2]=sel?(sel.value.split('x').map(Number)):[800,600];
+  const samples=parseInt(document.getElementById('g-samples-sel')?.value||'64');
+
+  // Send to server
+  try{
+    if(prog)prog.textContent='Sending to Blender ('+samples+' samples)...';
+    const res=await fetch(SERVER_URL+'/render',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,width:w,height:h2,samples})
+    });
+    if(!res.ok){
+      const err=await res.json();
+      addMsg('Render error: '+err.error,'k');
+      if(ov)ov.style.display='none';
+      return;
+    }
+    const data=await res.json();
+    // Show rendered image
+    const img=document.getElementById('g-render-img');
+    const ph=document.getElementById('g-render-placeholder');
+    if(img&&data.image){
+      img.src=data.image;img.style.display='block';
+      if(ph)ph.style.display='none';
+      lastRenderImg=data.image;
+    }
+    if(ov)ov.style.display='none';
+    setStat('\u2713 Render complete!');setTimeout(()=>setStat(''),3000);
+  }catch(e){
+    addMsg('Server error: '+e.message,'k');
+    if(ov)ov.style.display='none';
+  }
+}
+
+async function reRender(){
+  if(!liveSceneCode.length){addMsg('Nothing to render yet. Ask Keith to build something first.','k');return;}
+  await sendToBlenderServer('');  // re-render with existing history
+}
+
+async function resetLiveScene(){
+  liveSceneCode=[];
+  try{await fetch(SERVER_URL+'/reset',{method:'POST'});}catch(e){}
+  const img=document.getElementById('g-render-img');
+  const ph=document.getElementById('g-render-placeholder');
+  if(img)img.style.display='none';
+  if(ph){ph.style.display='block';ph.innerHTML='Scene reset. Tell Keith what to build.';}
+  addMsg('Scene reset. Tell me what to build.','k');
+}
+
+function downloadRender(){
+  if(!lastRenderImg){addMsg('No render yet.','k');return;}
+  const a=document.createElement('a');a.href=lastRenderImg;a.download='greenium_render.png';a.click();
+}
+
+
+// ═══ BLENDER LIVE ═════════════════════════════════════════════════════
+const BLENDER_PORT = 8765;
+let blenderConnected = false;
+
+async function blenderFetch(action, data={}) {
+  try {
+    const res = await fetch('http://localhost:'+BLENDER_PORT+'/'+action.replace('/','')+'' , {
+      method: action==='ping'?'GET':'POST',
+      headers:{'Content-Type':'application/json'},
+      body: action==='ping'?undefined:JSON.stringify(data),
+      signal: AbortSignal.timeout(15000)
+    });
+    return await res.json();
+  } catch(e) {
+    return {ok:false, error:e.message};
+  }
+}
+
+async function blenderGet(path) {
+  try {
+    const res = await fetch('http://localhost:'+BLENDER_PORT+path, {signal:AbortSignal.timeout(5000)});
+    return await res.json();
+  } catch(e) { return {ok:false,error:e.message}; }
+}
+
+async function connectBlender() {
+  setStat('Connecting to Blender...');
+  const result = await blenderGet('/ping');
+  const statusEl = document.getElementById('g-live-status');
+  if(result.ok) {
+    blenderConnected = true;
+    statusEl.textContent = 'CONNECTED';
+    statusEl.style.background = '#003300';
+    statusEl.style.color = '#00ff88';
+    setStat('Connected to Blender!');
+    addMsg('My man, Blender is connected. Tell me what to build and I will render it.','k');
+  } else {
+    blenderConnected = false;
+    statusEl.textContent = 'FAILED';
+    statusEl.style.background = '#330000';
+    statusEl.style.color = '#ff4444';
+    setStat('Could not connect — is the server script running in Blender?');
+    addMsg('My man, I could not reach Blender. Make sure you ran greenium_blender_server.py in Blender\'s Scripting tab.','k');
+  }
+}
+
+async function renderBlender(samples) {
+  if(!blenderConnected) { setStat('Not connected to Blender'); return; }
+  setStat('Rendering in Blender...');
+  document.getElementById('g-think').classList.add('on');
+  const s = samples || 64;
+  const result = await blenderFetch('render', {action:'render', width:512, height:384, samples:s});
+  document.getElementById('g-think').classList.remove('on');
+  if(result.ok && result.image) {
+    showRender(result.image);
+    setStat('Render complete! (' + s + ' samples)');
+  } else {
+    setStat('Render failed: ' + (result.error||'unknown error'));
+  }
+}
+
+function showRender(dataUrl) {
+  const img = document.getElementById('g-live-img');
+  const placeholder = document.getElementById('g-live-placeholder');
+  img.src = dataUrl;
+  img.style.display = 'block';
+  if(placeholder) placeholder.style.display = 'none';
+}
+
+async function clearBlenderLive() {
+  if(!blenderConnected) { setStat('Not connected'); return; }
+  const r = await blenderFetch('clear', {action:'clear'});
+  if(r.ok) { setStat('Scene cleared'); addMsg('Scene cleared in Blender.','k'); }
+}
+
+async function getSceneInfo() {
+  if(!blenderConnected) { setStat('Not connected'); return; }
+  const r = await blenderFetch('scene_info', {action:'get_scene_info'});
+  if(r.ok) {
+    addMsg('Scene has '+r.count+' objects: '+r.objects.slice(0,8).join(', ')+(r.count>8?'...':''),'k');
+  }
+}
+
 function saveWorld(){const d=getSW();d[gKey]={name:gName,dim:gDim,scene:gScene,chat:gChat,script:blenderScript,ts:Date.now()};setSW(d);addMsg('Saved!','k');setStat('Saved');setTimeout(()=>setStat(''),2000);}
 function goBack(){window.location.href='index.html';}
 
