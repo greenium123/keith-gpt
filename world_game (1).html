@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Keith Dominion &mdash; World Conquest</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--panel:#0f1923;--b2:#161f2a;--brd:#1e2d3d;--grn:#10b981;--grnl:#34d399;--gold:#d29922;--goldl:#f0b429;--red:#ef4444;--redl:#f87171;--blue:#3b82f6;--bluel:#60a5fa;--dim:#7a8fa3;--text:#c9d8e8;--amb:#f59e0b}
+body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);margin:0;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+#hdr{background:var(--panel);border-bottom:1px solid var(--brd);padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;flex-wrap:wrap}
+.ht{font-size:12px;font-weight:700;color:var(--goldl);letter-spacing:1.5px}
+.hs2{font-size:9px;color:var(--dim);margin-top:1px}
+.stat{font-size:11px;color:var(--dim);display:flex;gap:4px;align-items:center}
+.stat strong{color:var(--text);font-size:12px}
+.stat.army{color:#ff9900}.stat.army strong{color:#ffbb44}
+.nb{padding:5px 10px;border:1px solid var(--brd);border-radius:6px;background:transparent;color:var(--dim);font-family:'Courier New',monospace;font-size:10px;cursor:pointer;font-weight:700;transition:all .15s}
+.nb:hover{color:var(--text);border-color:var(--text)}.nb.on{background:var(--grn);color:#000;border-color:var(--grn)}
+#body{flex:1;display:flex;overflow:hidden;min-height:0}
+#map-wrap{flex:1;position:relative;overflow:hidden;background:#0a1a2e}
+#world-svg{width:100%;height:100%;display:block}
+.country{transition:fill .15s}
+#right{width:280px;background:var(--panel);border-left:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#foot{background:var(--panel);border-top:1px solid var(--brd);padding:6px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.fl{font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+.fb{flex:1;height:6px;background:var(--brd);border-radius:3px;overflow:hidden}
+.ff{height:100%;background:var(--grn);border-radius:3px;transition:width .5s}
+#fv{font-size:10px;color:var(--grn);font-weight:700;white-space:nowrap}
+.pnl{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.pnl.off{display:none}
+.ph{border-bottom:1px solid var(--brd);padding:9px 12px;flex-shrink:0}
+.pl{font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase}
+#log{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+#log::-webkit-scrollbar{width:3px}
+#log::-webkit-scrollbar-thumb{background:var(--brd)}
+.le{font-size:10px;line-height:1.5;padding:4px 7px;border-left:2px solid var(--brd);color:var(--dim)}
+.le.g{border-color:var(--grn);color:#6ee7b7}.le.b{border-color:var(--red);color:#fca5a5}
+.le.w{border-color:var(--goldl);color:#fcd34d}.le.i{border-color:var(--bluel);color:#93c5fd}
+.le.a{border-color:var(--amb);color:#fbbf24}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:10px 12px}
+.sc{background:var(--b2);border-radius:6px;padding:7px 9px}
+.sv{font-size:14px;font-weight:700;display:block;margin-bottom:2px}
+.sk{font-size:9px;color:var(--dim)}
+#cp{display:none;flex-direction:column;height:100%;overflow:hidden}
+#cp-hdr{padding:12px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+#cp-flag{font-size:20px}
+#cp-name{font-size:14px;font-weight:700;color:var(--goldl)}
+#cp-info{padding:9px 12px;border-bottom:1px solid var(--brd);font-size:10px;color:var(--dim);line-height:1.8;flex-shrink:0}
+#cp-cities{flex:1;overflow-y:auto;padding:8px}
+#cp-cities::-webkit-scrollbar{width:3px}
+#cp-cities::-webkit-scrollbar-thumb{background:var(--brd)}
+.cc{background:var(--b2);border:1px solid var(--brd);border-radius:8px;padding:9px;margin-bottom:6px}
+.cc.done{border-color:var(--grn);background:rgba(16,185,129,.07)}
+.cc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.cc-nm{font-size:11px;font-weight:700}
+.cc-pop{font-size:9px;color:var(--dim)}
+.cc-bar{height:5px;background:var(--brd);border-radius:3px;overflow:hidden;margin-bottom:5px}
+.cc-fill{height:100%;background:var(--amb);border-radius:3px;transition:width .4s}
+.cc-fill.done{background:var(--grn)}
+.cc-info{font-size:9px;color:var(--dim);margin-bottom:6px}
+.cc-btns{display:flex;gap:4px}
+.cbt{flex:1;padding:5px;border:1px solid var(--brd);border-radius:5px;background:transparent;color:var(--text);font-family:'Courier New',monospace;font-size:9px;cursor:pointer;font-weight:700;transition:all .15s}
+.cbt:hover:not(:disabled){border-color:var(--goldl);color:var(--goldl)}.cbt:disabled{opacity:.35;cursor:not-allowed}
+.cbt.red{border-color:rgba(239,68,68,.5);color:var(--redl)}.cbt.red:hover:not(:disabled){background:rgba(239,68,68,.1)}
+#cp-full{width:calc(100% - 24px);margin:6px 12px 0;padding:9px;background:var(--red);color:#fff;border:none;border-radius:7px;font-family:'Courier New',monospace;font-weight:700;font-size:11px;cursor:pointer;display:none}
+#cp-back{width:calc(100% - 24px);margin:6px 12px 10px;padding:8px;background:transparent;border:1px solid var(--brd);border-radius:7px;color:var(--dim);font-family:'Courier New',monospace;font-size:10px;cursor:pointer}
+#cp-back:hover{color:var(--text);border-color:var(--text)}
+.escroll{flex:1;overflow-y:auto;padding:8px}
+.escroll::-webkit-scrollbar{width:3px}
+.escroll::-webkit-scrollbar-thumb{background:var(--brd)}
+.ec{background:var(--b2);border:1px solid var(--brd);border-radius:8px;padding:9px;margin-bottom:7px}
+.ec-r{display:flex;gap:8px;margin-bottom:5px}
+.ec-i{font-size:18px;flex-shrink:0}
+.ec-n{font-size:11px;font-weight:700;margin-bottom:2px}
+.ec-d{font-size:9px;color:var(--dim);line-height:1.5}
+.bgs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.bg{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600}
+.bgg{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.2)}
+.bgy{background:rgba(210,153,34,.12);color:#f0b429;border:1px solid rgba(210,153,34,.2)}
+.bgb{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2)}
+.bgr{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.ebtn{width:100%;padding:6px;background:transparent;border:1px solid var(--grn);border-radius:5px;color:var(--grnl);font-family:'Courier New',monospace;font-size:10px;cursor:pointer;font-weight:700}
+.ebtn:hover:not(:disabled){background:rgba(16,185,129,.1)}.ebtn:disabled{border-color:var(--brd);color:var(--dim);cursor:not-allowed}
+.army-s{flex:1;overflow-y:auto;padding:10px}
+.army-s::-webkit-scrollbar{width:3px}
+.army-s::-webkit-scrollbar-thumb{background:var(--brd)}
+#qov{display:none;position:fixed;inset:0;background:rgba(5,8,12,.96);z-index:80;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#qov.on{display:flex}
+.qbox{max-width:440px;width:100%;display:flex;flex-direction:column;gap:10px}
+.qt{font-size:14px;font-weight:700;color:var(--amb);text-align:center}
+.qctx{background:var(--b2);border:1px solid var(--brd);border-radius:8px;padding:10px;font-size:10px;color:var(--dim);line-height:1.6}
+.qtxt{font-size:13px;font-weight:700;color:var(--text);line-height:1.6}
+.qopts{display:flex;flex-direction:column;gap:6px}
+.qo{padding:10px 14px;border:1px solid var(--brd);border-radius:8px;background:var(--b2);color:var(--text);font-family:'Courier New',monospace;font-size:11px;cursor:pointer;text-align:left;font-weight:600;transition:all .15s}
+.qo:hover:not(:disabled){border-color:var(--amb);color:var(--amb)}.qo:disabled{cursor:not-allowed}
+.qo.ok{border-color:var(--grn);color:var(--grnl);background:rgba(16,185,129,.1)}
+.qo.no{border-color:var(--red);color:var(--redl);background:rgba(239,68,68,.1)}
+.qfb{font-size:10px;font-weight:700;text-align:center;min-height:16px}
+.qskip{padding:7px;background:transparent;border:1px solid var(--brd);border-radius:7px;color:var(--dim);font-family:'Courier New',monospace;font-size:10px;cursor:pointer}
+#inv{display:none;position:fixed;inset:0;background:rgba(5,8,12,.95);z-index:70;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#inv.on{display:flex}
+.ibox{max-width:460px;width:100%;background:var(--b2);border:1px solid var(--brd);border-radius:12px;padding:18px}
+.it{font-size:15px;font-weight:700;color:var(--red);margin-bottom:3px}
+.is{font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.6}
+.istats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.istat{background:var(--bg);border-radius:6px;padding:7px;text-align:center}
+.isv{font-size:15px;font-weight:700;display:block;margin-bottom:2px}
+.isk{font-size:9px;color:var(--dim)}
+.iacts{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.ia{padding:9px 12px;border:1px solid var(--brd);border-radius:7px;background:var(--bg);color:var(--text);font-family:'Courier New',monospace;font-size:11px;cursor:pointer;text-align:left;font-weight:700;transition:all .15s}
+.ia:hover:not(:disabled){border-color:var(--red);color:var(--redl)}.ia:disabled{opacity:.4;cursor:not-allowed}
+.ires{font-size:11px;font-weight:700;padding:9px;border-radius:7px;display:none;line-height:1.6;margin-bottom:6px}
+.iclose{width:100%;padding:8px;background:transparent;border:1px solid var(--brd);border-radius:7px;color:var(--dim);font-family:'Courier New',monospace;font-size:10px;cursor:pointer}
+#tip{position:fixed;background:rgba(5,15,30,.95);border:1px solid var(--brd);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--text);pointer-events:none;display:none;z-index:60;font-family:'Courier New',monospace;max-width:240px}
+#vic{display:none;position:fixed;inset:0;background:rgba(5,8,12,.97);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px}
+#vic.on{display:flex}
+#map-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a1a2e;color:#4a8ab0;font-family:'Courier New',monospace;gap:10px;z-index:5}
+.spin{width:32px;height:32px;border:3px solid #1a3a5a;border-top-color:#3b82f6;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="hdr">
+  <div><div class="ht">&#x2697;&#xFE0F; KEITH DOMINION &mdash; WORLD</div><div class="hs2">STAGE 5: WORLD CONQUEST</div></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div class="stat">&#x1F4B5; <strong id="h-gb">600,000</strong></div>
+    <div class="stat army">&#x1F4AA; <strong id="h-army">100,000</strong> soldiers</div>
+    <div class="stat">&#x1F310; <strong id="h-con">1</strong>/195 countries</div>
+  </div>
+  <div style="display:flex;gap:4px">
+    <button class="nb on" onclick="setP('ov')">&#x1F4CD; MAP</button>
+    <button class="nb" onclick="setP('earn')">&#x1F4B0; EARN</button>
+    <button class="nb" onclick="setP('army')">&#x1F4AA; ARMY</button>
+  </div>
+</div>
+<div id="body">
+  <div id="map-wrap">
+    <div id="map-loading"><div class="spin"></div><span>Loading world map&hellip;</span><span style="font-size:9px;color:#2a5a8a;margin-top:4px">Fetching Natural Earth data from CDN</span></div>
+    <svg id="world-svg" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div id="right">
+    <div class="pnl" id="pnl-ov">
+      <div class="sg">
+        <div class="sc"><span class="sv" id="s-gb" style="color:var(--goldl)">600,000</span><span class="sk">Greenbacks</span></div>
+        <div class="sc"><span class="sv" id="s-army" style="color:#ffbb44">100,000</span><span class="sk">Soldiers</span></div>
+        <div class="sc"><span class="sv" id="s-con" style="color:var(--bluel)">1</span><span class="sk">Countries owned</span></div>
+        <div class="sc"><span class="sv" id="s-v" style="color:var(--grnl)">0</span><span class="sk">World influence</span></div>
+      </div>
+      <div class="ph"><div class="pl">HOW TO PLAY</div>
+        <div style="font-size:9px;color:var(--dim);margin-top:5px;line-height:1.7">Click any country on the map to invade it.<br>Conquer all 5 cities to claim the country.<br>Use army to invade. Quiz = +30% combat bonus.<br>Propaganda gains control without soldiers.</div>
+      </div>
+      <div class="ph" style="padding:6px 12px"><div class="pl" style="margin:0">EVENT LOG</div></div>
+      <div id="log">
+        <div class="le i">&#x1F30E; The USA is yours. Now conquer the world!</div>
+        <div class="le g">&#x1F4AA; 100,000 soldiers ready to deploy.</div>
+        <div class="le a">&#x26A0; Click any country on the accurate world map.</div>
+      </div>
+    </div>
+    <div class="pnl off" id="pnl-earn">
+      <div class="ph"><div class="pl">EARN GREENBACKS</div></div>
+      <div class="escroll" id="earn-list"></div>
+    </div>
+    <div class="pnl off" id="pnl-army">
+      <div class="ph"><div class="pl">ARMY MANAGEMENT</div></div>
+      <div class="army-s" id="army-list"></div>
+    </div>
+    <div id="cp">
+      <div id="cp-hdr"><div id="cp-flag">&#x1F30D;</div><div><div id="cp-name">Country</div><div id="cp-status" style="font-size:9px;color:var(--dim)"></div></div></div>
+      <div id="cp-info"></div>
+      <div id="cp-cities"></div>
+      <button id="cp-full" onclick="fullInvasion()">&#x2694;&#xFE0F; FULL INVASION</button>
+      <button id="cp-back" onclick="closeCP()">&#x2190; Back to Map</button>
+    </div>
+  </div>
+</div>
+<div id="foot">
+  <div class="fl">World Domination</div>
+  <div class="fb"><div class="ff" id="ff" style="width:0.5%"></div></div>
+  <div id="fv">1 / 195</div>
+</div>
+</div>
+<div id="qov"><div class="qbox">
+  <div class="qt">&#x2697;&#xFE0F; CHEMISTRY COMBAT BONUS</div>
+  <div class="qctx">Answer correctly for +30% combat power against this city!</div>
+  <div class="qtxt" id="qtxt"></div>
+  <div class="qopts" id="qopts"></div>
+  <div class="qfb" id="qfb"></div>
+  <button class="qskip" onclick="closeQ()">Skip &#x2192;</button>
+</div></div>
+<div id="inv"><div class="ibox">
+  <div class="it" id="it">&#x2694;&#xFE0F; INVADE</div>
+  <div class="is" id="is"></div>
+  <div class="istats">
+    <div class="istat"><span class="isv" id="iv-cp" style="color:var(--red)">0</span><span class="isk">City Population</span></div>
+    <div class="istat"><span class="isv" id="iv-def" style="color:var(--redl)">0</span><span class="isk">Defenders</span></div>
+    <div class="istat"><span class="isv" id="iv-sol" style="color:#ffbb44">0</span><span class="isk">Your Soldiers</span></div>
+    <div class="istat"><span class="isv" id="iv-need" style="color:var(--goldl)">0</span><span class="isk">Min. Needed</span></div>
+  </div>
+  <div class="iacts">
+    <button class="ia" id="iq-btn" onclick="startCityQ()">&#x2697;&#xFE0F; Chemistry Quiz &#x2192; +30% combat power</button>
+    <button class="ia" id="iatk-btn" onclick="doAttack()">&#x2694;&#xFE0F; Launch Military Invasion</button>
+    <button class="ia" onclick="doProp()">&#x1F4E2; Propaganda (+5&ndash;15% control, no soldiers)</button>
+  </div>
+  <div class="ires" id="ires"></div>
+  <button class="iclose" onclick="closeInv()">&#x2715; Close</button>
+</div></div>
+<div id="tip"></div>
+<div id="vic">
+  <div style="font-size:72px">&#x1F30E;</div>
+  <div style="font-size:26px;font-weight:700;color:var(--goldl)">KEITH CONQUERS THE WORLD!</div>
+  <div style="font-size:13px;color:var(--dim);line-height:1.8;max-width:400px">Every nation has fallen. Keith Green rules planet Earth. My man... Oh word?</div>
+  <a href="keith_dominion.html" style="padding:12px 28px;background:var(--goldl);color:#000;border:none;border-radius:8px;font-family:'Courier New',monospace;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;margin-top:8px">&#x1F3E0; Main Menu</a>
+</div>
+<script>
+const CD=[{n:"India",f:"🇮🇳",c:"IND",r:"Asia",p:1450000000,cx:688.0,cy:195.5,sz:22,col:"#4a8c3f",cities:[{n:"Delhi",p:30300000},{n:"Mumbai",p:25100000},{n:"Kolkata",p:16800000},{n:"Bangalore",p:12200000},{n:"Chennai",p:11300000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"China",f:"🇨🇳",c:"CHN",r:"Asia",p:1420000000,cx:760.0,cy:150.3,sz:22,col:"#4a8c3f",cities:[{n:"Beijing",p:19800000},{n:"Shanghai",p:33600000},{n:"Guangzhou",p:46700000},{n:"Tianjin",p:12700000},{n:"Xiamen",p:10000000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"United States",f:"🇺🇸",c:"USA",r:"Americas",p:345430000,cx:224.0,cy:140.3,sz:17,col:"#2060a0",cities:[{n:"New York City",p:22100000},{n:"Los Angeles",p:17700000},{n:"Chicago",p:9750000},{n:"San Francisco",p:7850000},{n:"Washington, D.C.",p:8550000}],conquered:true,prog:[100,100,100,100,100]},
+{n:"Indonesia",f:"🇮🇩",c:"IDN",r:"Asia",p:283490000,cx:800.0,cy:263.4,sz:17,col:"#4a8c3f",cities:[{n:"Jakarta",p:31300000},{n:"Surabaya",p:6100000},{n:"Bandung",p:6950000},{n:"Medan",p:4000000},{n:"Semarang",p:2250000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Pakistan",f:"🇵🇰",c:"PAK",r:"Asia",p:251270000,cx:664.0,cy:166.1,sz:17,col:"#4a8c3f",cities:[{n:"Karachi",p:17800000},{n:"Lahore",p:13000000},{n:"Faisalabad",p:3650000},{n:"Rawalpindi",p:3450000},{n:"Gujranwala",p:2775000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Nigeria",f:"🇳🇬",c:"NGA",r:"Africa",p:232680000,cx:501.3,cy:225.9,sz:17,col:"#cc5520",cities:[{n:"Lagos",p:19400000},{n:"Abuja",p:3525000},{n:"Kano",p:4700000},{n:"Ibadan",p:3575000},{n:"Port Harcourt",p:2350000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Brazil",f:"🇧🇷",c:"BRA",r:"Americas",p:212000000,cx:338.7,cy:276.8,sz:17,col:"#2060a0",cities:[{n:"Rio de Janeiro",p:13200000},{n:"Brasília",p:4000000},{n:"São Paulo",p:22400000},{n:"Belo Horizonte",p:5000000},{n:"Porto Alegre",p:4125000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bangladesh",f:"🇧🇩",c:"BGD",r:"Asia",p:173560000,cx:720.0,cy:184.0,sz:13,col:"#4a8c3f",cities:[{n:"Dhaka",p:21006000},{n:"Chittagong",p:5020000},{n:"Khulna",p:954000},{n:"Sylhet",p:852000},{n:"Rajshahi",p:908000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Russia",f:"🇷🇺",c:"RUS",r:"Europe",p:144820000,cx:720.0,cy:43.4,sz:13,col:"#c8a020",cities:[{n:"Moscow",p:17300000},{n:"Saint Petersburg",p:5650000},{n:"Nizhny Novgorod",p:1730000},{n:"Yekaterinburg",p:1660000},{n:"Novosibirsk",p:1690000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Ethiopia",f:"🇪🇹",c:"ETH",r:"Africa",p:132060000,cx:586.7,cy:225.9,sz:13,col:"#cc5520",cities:[{n:"Addis Ababa",p:4794000},{n:"Dire Dawa",p:408000},{n:"Gondar",p:362000},{n:"Mekelle",p:524000},{n:"Adama",p:378000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Mexico",f:"🇲🇽",c:"MEX",r:"Americas",p:130860000,cx:208.0,cy:184.0,sz:13,col:"#2060a0",cities:[{n:"Mexico City",p:23000000},{n:"Guadalajara",p:5350000},{n:"Monterrey",p:5000000},{n:"Puebla",p:3175000},{n:"Toluca",p:2325000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Japan",f:"🇯🇵",c:"JPN",r:"Asia",p:123750000,cx:848.0,cy:147.0,sz:13,col:"#4a8c3f",cities:[{n:"Tokyo",p:40400000},{n:"Osaka",p:17700000},{n:"Sapporo",p:2500000},{n:"Nagoya",p:10500000},{n:"Fukuoka",p:2750000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Egypt",f:"🇪🇬",c:"EGY",r:"Africa",p:116540000,cx:560.0,cy:175.2,sz:13,col:"#cc5520",cities:[{n:"Cairo",p:20901000},{n:"Alexandria",p:5281000},{n:"Suez",p:638000},{n:"Port Said",p:737000},{n:"Mansoura",p:556000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Philippines",f:"🇵🇭",c:"PHL",r:"Asia",p:115840000,cx:805.3,cy:215.0,sz:13,col:"#4a8c3f",cities:[{n:"Manila",p:13923000},{n:"Cebu City",p:980000},{n:"Davao City",p:1825000},{n:"Zamboanga City",p:917000},{n:"Antipolo",p:881000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Democratic Republic of the Congo",f:"🇨🇩",c:"COD",r:"Africa",p:109280000,cx:544.0,cy:260.7,sz:13,col:"#cc5520",cities:[{n:"Kinshasa",p:12400000},{n:"Lubumbashi",p:2200000},{n:"Mbuji-Mayi",p:2075000},{n:"Kisangani",p:1160000},{n:"Kananga",p:1230000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Vietnam",f:"🇻🇳",c:"VNM",r:"Asia",p:100990000,cx:762.7,cy:206.8,sz:13,col:"#4a8c3f",cities:[{n:"Hanoi",p:4678000},{n:"Ho Chi Minh City",p:8602000},{n:"Da Nang",p:1125000},{n:"Haiphong",p:1300000},{n:"Cần Thơ",p:1618000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Iran",f:"🇮🇷",c:"IRN",r:"Asia",p:91570000,cx:621.3,cy:159.8,sz:10,col:"#4a8c3f",cities:[{n:"Tehran",p:15300000},{n:"Isfahan",p:3200000},{n:"Mashhad",p:3200000},{n:"Shiraz",p:1770000},{n:"Tabriz",p:1820000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Turkey",f:"🇹🇷",c:"TUR",r:"Asia",p:87470000,cx:573.3,cy:136.9,sz:10,col:"#4a8c3f",cities:[{n:"Istanbul",p:16000000},{n:"Ankara",p:5050000},{n:"Izmir",p:3025000},{n:"Bursa",p:2075000},{n:"Adana",p:1740000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Germany",f:"🇩🇪",c:"DEU",r:"Europe",p:84550000,cx:506.7,cy:91.4,sz:10,col:"#c8a020",cities:[{n:"Berlin",p:4725000},{n:"Hamburg",p:2875000},{n:"Frankfurt am Main",p:3250000},{n:"Cologne-Düsseldorf",p:5000000},{n:"The Ruhr",p:5700000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Thailand",f:"🇹🇭",c:"THA",r:"Asia",p:71670000,cx:749.3,cy:209.5,sz:10,col:"#4a8c3f",cities:[{n:"Bangkok",p:10539000},{n:"Chiang Mai",p:1167000},{n:"Chon Buri",p:1399000},{n:"Songkhla",p:967000},{n:"Samut Prakan",p:1307000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"United Kingdom",f:"🇬🇧",c:"GBR",r:"Europe",p:69140000,cx:472.0,cy:73.6,sz:10,col:"#c8a020",cities:[{n:"London",p:14800000},{n:"Manchester",p:3050000},{n:"Liverpool",p:1880000},{n:"Birmingham",p:3150000},{n:"Leeds",p:2175000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Tanzania",f:"🇹🇿",c:"TZA",r:"Africa",p:68560000,cx:573.3,cy:234.0,sz:10,col:"#cc5520",cities:[{n:"Dar es Salaam",p:6702000},{n:"Zanzibar",p:705000},{n:"Arusha",p:493000},{n:"Mwanza",p:1120000},{n:"Mbeya",p:566000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"France",f:"🇫🇷",c:"FRA",r:"Europe",p:66550000,cx:485.3,cy:111.5,sz:10,col:"#c8a020",cities:[{n:"Paris",p:11400000},{n:"Lyon",p:1980000},{n:"Marseille",p:1660000},{n:"Bordeaux",p:1080000},{n:"Lille",p:1290000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"South Africa",f:"🇿🇦",c:"ZAF",r:"Africa",p:64010000,cx:546.7,cy:330.9,sz:10,col:"#cc5520",cities:[{n:"Cape Town",p:4618000},{n:"Johannesburg",p:5783000},{n:"Pretoria",p:2566000},{n:"Durban",p:3158000},{n:"Ekurhuleni",p:3894000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Italy",f:"🇮🇹",c:"ITA",r:"Europe",p:59340000,cx:512.0,cy:122.8,sz:10,col:"#c8a020",cities:[{n:"Rome",p:3575000},{n:"Milan",p:6200000},{n:"Naples",p:4225000},{n:"Florence",p:1010000},{n:"Turin",p:1640000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Kenya",f:"🇰🇪",c:"KEN",r:"Africa",p:56430000,cx:581.3,cy:247.3,sz:10,col:"#cc5520",cities:[{n:"Nairobi",p:4735000},{n:"Mombasa",p:1296000},{n:"Eldoret",p:394000},{n:"Nakuru",p:383000},{n:"Ruiru",p:389000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Myanmar",f:"🇲🇲",c:"MMR",r:"Asia",p:54500000,cx:736.0,cy:204.0,sz:10,col:"#4a8c3f",cities:[{n:"Yangon",p:4728524},{n:"Naypyidaw",p:333506},{n:"Mandalay",p:1225546},{n:"Bago",p:254424},{n:"Taunggyi",p:264804}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Colombia",f:"🇨🇴",c:"COL",r:"Americas",p:52890000,cx:282.7,cy:239.3,sz:10,col:"#2060a0",cities:[{n:"Bogotá",p:9600000},{n:"Medellín",p:4025000},{n:"Cali",p:2875000},{n:"Barranquilla",p:2100000},{n:"Bucaramanga",p:1260000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"South Korea",f:"🇰🇷",c:"KOR",r:"Asia",p:51720000,cx:821.3,cy:143.7,sz:10,col:"#4a8c3f",cities:[{n:"Seoul",p:24800000},{n:"Busan",p:4125000},{n:"Daegu",p:2750000},{n:"Daejeon",p:1540000},{n:"Gwangju",p:1600000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Sudan",f:"🇸🇩",c:"SDN",r:"Africa",p:50450000,cx:560.0,cy:209.5,sz:10,col:"#cc5520",cities:[{n:"Khartoum",p:5829000},{n:"Port Sudan",p:484000},{n:"Nyala",p:923000},{n:"El-Obeid",p:481000},{n:"Wad Madani",p:374000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Uganda",f:"🇺🇬",c:"UGA",r:"Africa",p:50020000,cx:565.3,cy:247.3,sz:10,col:"#cc5520",cities:[{n:"Kampala",p:1680600},{n:"Kira",p:462900},{n:"Kyengera",p:285400},{n:"Nansana",p:532800},{n:"Ssabagabo",p:413400}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Spain",f:"🇪🇸",c:"ESP",r:"Europe",p:47910000,cx:469.3,cy:133.4,sz:8,col:"#c8a020",cities:[{n:"Madrid",p:6550000},{n:"Barcelona",p:4775000},{n:"Valencia",p:1840000},{n:"Seville",p:1290000},{n:"Málaga",p:1030000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Algeria",f:"🇩🇿",c:"DZA",r:"Africa",p:46810000,cx:488.0,cy:172.2,sz:8,col:"#cc5520",cities:[{n:"Algiers",p:2768000},{n:"Oran",p:899000},{n:"Constantine",p:414000},{n:"Blida",p:473000},{n:"Djelfa",p:503000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Iraq",f:"🇮🇶",c:"IRQ",r:"Asia",p:46040000,cx:597.3,cy:156.7,sz:8,col:"#4a8c3f",cities:[{n:"Baghdad",p:7000000},{n:"Mosul",p:1400000},{n:"Basra",p:1520000},{n:"Erbil‎",p:1090000},{n:"Kirkuk",p:1030000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Argentina",f:"🇦🇷",c:"ARG",r:"Americas",p:45700000,cx:309.3,cy:346.5,sz:8,col:"#2060a0",cities:[{n:"Buenos Aires",p:16400000},{n:"Córdoba",p:1670000},{n:"Rosario",p:1370000},{n:"Mendoza",p:1090000},{n:"San Miguel de Tucumán",p:1020000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Afghanistan",f:"🇦🇫",c:"AFG",r:"Asia",p:42650000,cx:656.0,cy:156.7,sz:8,col:"#4a8c3f",cities:[{n:"Kabul",p:4273200},{n:"Kandahar",p:506800},{n:"Herat",p:556200},{n:"Jalalabad",p:263300},{n:"Mazar-i-Sharif",p:469200}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Yemen",f:"🇾🇪",c:"YEM",r:"Asia",p:40580000,cx:608.0,cy:209.5,sz:8,col:"#4a8c3f",cities:[{n:"Sana'a",p:2973000},{n:"Aden",p:980000},{n:"Taiz",p:845000},{n:"Al Hudaydah",p:669000},{n:"Ibb",p:649000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Canada",f:"🇨🇦",c:"CAN",r:"Americas",p:39740000,cx:224.0,cy:68.9,sz:8,col:"#2060a0",cities:[{n:"Toronto",p:7450000},{n:"Vancouver",p:2875000},{n:"Montréal",p:4225000},{n:"Calgary",p:1500000},{n:"Edmonton",p:1370000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Poland",f:"🇵🇱",c:"POL",r:"Europe",p:38540000,cx:533.3,cy:87.1,sz:8,col:"#c8a020",cities:[{n:"Warsaw",p:1783000},{n:"Kraków",p:769000},{n:"Łódź",p:677000},{n:"Wrocław",p:641000},{n:"Poznań",p:531000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Morocco",f:"🇲🇦",c:"MAR",r:"Africa",p:38080000,cx:466.7,cy:159.8,sz:8,col:"#cc5520",cities:[{n:"Casablanca",p:4475000},{n:"Rabat",p:2050000},{n:"Marrakesh",p:1120000},{n:"Fez",p:1270000},{n:"Agadir",p:1190000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Angola",f:"🇦🇴",c:"AGO",r:"Africa",p:37890000,cx:528.0,cy:282.2,sz:8,col:"#cc5520",cities:[{n:"Luanda",p:8330000},{n:"Cabinda",p:778000},{n:"Benguela",p:715000},{n:"Huambo",p:671000},{n:"Lubango",p:828000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Ukraine",f:"🇺🇦",c:"UKR",r:"Europe",p:37860000,cx:565.3,cy:99.7,sz:8,col:"#c8a020",cities:[{n:"Kyiv",p:3475000},{n:"Odessa",p:1110000},{n:"Donetsk",p:1440000},{n:"Kharkiv",p:1640000},{n:"Dnipro",p:1390000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Uzbekistan",f:"🇺🇿",c:"UZB",r:"Asia",p:36360000,cx:650.7,cy:129.9,sz:8,col:"#4a8c3f",cities:[{n:"Tashkent",p:2517000},{n:"Samarkand",p:579000},{n:"Nukus",p:338000},{n:"Andijan",p:443000},{n:"Namangan",p:529000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Malaysia",f:"🇲🇾",c:"MYS",r:"Asia",p:35560000,cx:773.3,cy:242.0,sz:8,col:"#4a8c3f",cities:[{n:"Kuala Lumpur",p:7997000},{n:"Johor Bahru",p:1024000},{n:"Kota Kinabalu",p:550000},{n:"Kuching",p:612000},{n:"Ipoh",p:814000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Mozambique",f:"🇲🇿",c:"MOZ",r:"Africa",p:34630000,cx:573.3,cy:298.8,sz:8,col:"#cc5520",cities:[{n:"Maputo",p:1110000},{n:"Beira",p:570000},{n:"Nampula",p:848000},{n:"Chimoio",p:425000},{n:"Matola",p:1706000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Ghana",f:"🇬🇭",c:"GHA",r:"Africa",p:34430000,cx:474.7,cy:228.6,sz:8,col:"#cc5520",cities:[{n:"Accra",p:2291352},{n:"Kumasi",p:2069350},{n:"Tamale",p:562919},{n:"Sekondi-Takoradi",p:539548},{n:"Ashaiman",p:298841}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Peru",f:"🇵🇪",c:"PER",r:"Americas",p:34220000,cx:277.3,cy:276.8,sz:8,col:"#2060a0",cities:[{n:"Lima",p:10719000},{n:"Arequipa",p:923000},{n:"Trujillo",p:865000},{n:"Chiclayo",p:637000},{n:"Piura",p:474000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Saudi Arabia",f:"🇸🇦",c:"SAU",r:"Asia",p:33960000,cx:597.3,cy:184.0,sz:8,col:"#4a8c3f",cities:[{n:"Riyadh",p:8050000},{n:"Mecca",p:2125000},{n:"Jeddah",p:4950000},{n:"Medina",p:1540000},{n:"Dammam",p:2500000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Madagascar",f:"🇲🇬",c:"MDG",r:"Africa",p:31960000,cx:533.3,cy:250.0,sz:8,col:"#cc5520",cities:[{n:"Antananarivo",p:1275207},{n:"Toamasina",p:326286},{n:"Antsirabe",p:245592},{n:"Fianarantsoa",p:189879},{n:"Mahajanga",p:244722}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Côte d'Ivoire",f:"🇨🇮",c:"CIV",r:"Africa",p:31930000,cx:464.0,cy:228.6,sz:8,col:"#cc5520",cities:[{n:"Capital City",p:5321666},{n:"North District",p:3991250},{n:"South District",p:3193000},{n:"East District",p:2660833},{n:"West District",p:2280714}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Nepal",f:"🇳🇵",c:"NPL",r:"Asia",p:29650000,cx:704.0,cy:172.2,sz:8,col:"#4a8c3f",cities:[{n:"Kathmandu",p:1003285},{n:"Pokhara",p:264991},{n:"Lalitpur",p:226728},{n:"Bharatpur",p:147777},{n:"Biratnagar",p:204949}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Cameroon",f:"🇨🇲",c:"CMR",r:"Africa",p:29120000,cx:512.0,cy:234.0,sz:8,col:"#cc5520",cities:[{n:"Yaoundé",p:3992000},{n:"Douala",p:3663000},{n:"Bamenda",p:533000},{n:"Loum",p:498000},{n:"Mbouda",p:486000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Venezuela",f:"🇻🇪",c:"VEN",r:"Americas",p:28410000,cx:304.0,cy:228.6,sz:8,col:"#2060a0",cities:[{n:"Caracas",p:3750000},{n:"Valencia",p:2000000},{n:"Maracaibo",p:2625000},{n:"Barquisimeto",p:1300000},{n:"Maracay",p:1420000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Niger",f:"🇳🇪",c:"NER",r:"Africa",p:27030000,cx:501.3,cy:204.0,sz:8,col:"#cc5520",cities:[{n:"Niamey",p:978029},{n:"Agadez",p:110497},{n:"Zinder",p:235605},{n:"Maradi",p:267249},{n:"Tahoua",p:117826}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Australia",f:"🇦🇺",c:"AUS",r:"Oceania",p:26710000,cx:834.7,cy:324.8,sz:8,col:"#8030a0",cities:[{n:"Sydney",p:5300000},{n:"Melbourne",p:4975000},{n:"Perth",p:2075000},{n:"Brisbane",p:3150000},{n:"Adelaide",p:1340000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"North Korea",f:"🇰🇵",c:"PRK",r:"Asia",p:26500000,cx:818.7,cy:133.4,sz:8,col:"#4a8c3f",cities:[{n:"Pyongyang",p:3084000},{n:"Hamhung",p:549000},{n:"Chongjin",p:642000},{n:"Wonsan",p:353000},{n:"Sinuiju",p:326000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Syria",f:"🇸🇾",c:"SYR",r:"Asia",p:24670000,cx:581.3,cy:150.3,sz:8,col:"#4a8c3f",cities:[{n:"Damascus",p:2392000},{n:"Aleppo",p:1917000},{n:"Homs",p:1336000},{n:"Hama",p:922000},{n:"Latakia",p:656000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Mali",f:"🇲🇱",c:"MLI",r:"Africa",p:24480000,cx:474.7,cy:204.0,sz:8,col:"#cc5520",cities:[{n:"Bamako",p:1810366},{n:"Kayes",p:126319},{n:"Ségou",p:133501},{n:"Sikasso",p:226618},{n:"Koutiala",p:141444}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Burkina Faso",f:"🇧🇫",c:"BFA",r:"Africa",p:23550000,cx:477.3,cy:217.8,sz:8,col:"#cc5520",cities:[{n:"Ouagadougou",p:1475223},{n:"Bobo-Dioulasso",p:489967},{n:"Banfora",p:75917},{n:"Koudougou",p:88184},{n:"Ouahigouya",p:73153}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Sri Lanka",f:"🇱🇰",c:"LKA",r:"Asia",p:23100000,cx:696.0,cy:228.6,sz:8,col:"#4a8c3f",cities:[{n:"Colombo",p:561314},{n:"Dehiwala-Mount Lavinia",p:184468},{n:"Kaduwela",p:252041},{n:"Kesbewa",p:185122},{n:"Maharagama",p:196423}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Malawi",f:"🇲🇼",c:"MWI",r:"Africa",p:21660000,cx:570.7,cy:287.7,sz:8,col:"#cc5520",cities:[{n:"Lilongwe",p:989318},{n:"Blantyre",p:800264},{n:"Mzuzu",p:221272},{n:"Zomba",p:105013},{n:"Karonga",p:61609}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Zambia",f:"🇿🇲",c:"ZMB",r:"Africa",p:21310000,cx:554.7,cy:287.7,sz:8,col:"#cc5520",cities:[{n:"Lusaka",p:2627700},{n:"Kitwe",p:715200},{n:"Ndola",p:574400},{n:"Chingola",p:245300},{n:"Kabwe",p:234100}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Kazakhstan",f:"🇰🇿",c:"KAZ",r:"Asia",p:20590000,cx:661.3,cy:103.7,sz:8,col:"#4a8c3f",cities:[{n:"Astana",p:1166000},{n:"Almaty",p:1896000},{n:"Shymkent",p:1058000},{n:"Aktobe",p:431000},{n:"Karaganda",p:505000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Chad",f:"🇹🇩",c:"TCD",r:"Africa",p:20300000,cx:530.7,cy:209.5,sz:8,col:"#cc5520",cities:[{n:"N'Djamena",p:951418},{n:"Abéché",p:97963},{n:"Moundou",p:137251},{n:"Sarh",p:97224},{n:"Kélo",p:57859}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Chile",f:"🇨🇱",c:"CHL",r:"Americas",p:19760000,cx:290.7,cy:333.9,sz:6,col:"#2060a0",cities:[{n:"Santiago",p:6767000},{n:"Valparaíso",p:984000},{n:"Antofagasta",p:439000},{n:"Concepción",p:881000},{n:"La Serena-Coquimbo",p:484000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Romania",f:"🇷🇴",c:"ROU",r:"Europe",p:19020000,cx:546.7,cy:111.5,sz:6,col:"#c8a020",cities:[{n:"Bucharest",p:1883425},{n:"Cluj-Napoca",p:324576},{n:"Constanța",p:283872},{n:"Timișoara",p:319279},{n:"Iași",p:290422}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Somalia",f:"🇸🇴",c:"SOM",r:"Africa",p:19010000,cx:602.7,cy:234.0,sz:6,col:"#cc5520",cities:[{n:"Mogadishu",p:2282000},{n:"Hargeisa",p:989000},{n:"Berbera",p:499000},{n:"Kismayo",p:471000},{n:"Merca",p:666000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Senegal",f:"🇸🇳",c:"SEN",r:"Africa",p:18500000,cx:442.7,cy:212.3,sz:6,col:"#cc5520",cities:[{n:"Dakar",p:2646503},{n:"Thiès",p:317763},{n:"Touba",p:753315},{n:"M'Bour",p:232777},{n:"Kaolack",p:233708}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Guatemala",f:"🇬🇹",c:"GTM",r:"Americas",p:18410000,cx:533.3,cy:250.0,sz:6,col:"#2060a0",cities:[{n:"Guatemala City",p:923392},{n:"Quetzaltenango",p:180706},{n:"Cobán",p:212047},{n:"Mixco",p:463019},{n:"Villa Nueva",p:426316}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Netherlands",f:"🇳🇱",c:"NLD",r:"Europe",p:18230000,cx:493.3,cy:87.1,sz:6,col:"#c8a020",cities:[{n:"Amsterdam",p:1149000},{n:"Rotterdam",p:1010000},{n:"The Hague",p:698000},{n:"Utrecht",p:544000},{n:"Eindhoven",p:359000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Ecuador",f:"🇪🇨",c:"ECU",r:"Americas",p:18140000,cx:272.0,cy:255.3,sz:6,col:"#2060a0",cities:[{n:"Quito",p:1847113},{n:"Santo Domingo",p:367184},{n:"Guayaquil",p:2615336},{n:"Cuenca",p:392439},{n:"Durán",p:305313}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Cambodia",f:"🇰🇭",c:"KHM",r:"Asia",p:17640000,cx:760.0,cy:217.8,sz:6,col:"#4a8c3f",cities:[{n:"Phnom Penh",p:1242992},{n:"Siem Reap",p:168662},{n:"Battambang",p:140533},{n:"Sihanoukville",p:89447},{n:"Poipet",p:89549}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Zimbabwe",f:"🇿🇼",c:"ZWE",r:"Africa",p:16629999,cx:560.0,cy:304.5,sz:6,col:"#cc5520",cities:[{n:"Harare",p:1485231},{n:"Bulawayo",p:653337},{n:"Mutare",p:186208},{n:"Chitungwiza",p:356840},{n:"Epworth",p:167462}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Guinea",f:"🇬🇳",c:"GIN",r:"Africa",p:14750000,cx:450.7,cy:220.5,sz:6,col:"#cc5520",cities:[{n:"Conakry",p:1660973},{n:"Kankan",p:190722},{n:"Nzérékoré",p:195027},{n:"Dubréka",p:157017},{n:"Manéah",p:167354}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Benin",f:"🇧🇯",c:"BEN",r:"Africa",p:14460000,cx:485.3,cy:223.2,sz:6,col:"#cc5520",cities:[{n:"Porto-Novo",p:264320},{n:"Cotonou",p:679012},{n:"Parakou",p:255478},{n:"Abomey-Calavi",p:117824},{n:"Godomey",p:253262}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Rwanda",f:"🇷🇼",c:"RWA",r:"Africa",p:14260000,cx:560.0,cy:255.3,sz:6,col:"#cc5520",cities:[{n:"Kigali",p:859332},{n:"Butare",p:50220},{n:"Gisenyi",p:136830},{n:"Gitarama",p:49038},{n:"Ruhengeri",p:59333}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Burundi",f:"🇧🇮",c:"BDI",r:"Africa",p:14050000,cx:560.0,cy:258.0,sz:6,col:"#cc5520",cities:[{n:"Gitega",p:41944},{n:"Bujumbura",p:497166},{n:"Ngozi",p:39884},{n:"Cibitoke",p:23885},{n:"Rumonge",p:35931}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bolivia",f:"🇧🇴",c:"BOL",r:"Americas",p:12410000,cx:306.7,cy:296.0,sz:6,col:"#2060a0",cities:[{n:"La Paz",p:758845},{n:"Santa Cruz",p:1442396},{n:"Cochabamba",p:632013},{n:"El Alto",p:846880},{n:"Oruro",p:264943}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Tunisia",f:"🇹🇳",c:"TUN",r:"Africa",p:12280000,cx:504.0,cy:153.5,sz:6,col:"#cc5520",cities:[{n:"Tunis",p:638845},{n:"Sfax",p:272801},{n:"Sousse",p:221530},{n:"Kairouan",p:139070},{n:"Ettadhamen-Mnihla",p:142953}],conquered:false,prog:[0,0,0,0,0]},
+{n:"South Sudan",f:"🇸🇸",c:"SSD",r:"Africa",p:11940000,cx:560.0,cy:231.3,sz:6,col:"#cc5520",cities:[{n:"Juba",p:230195},{n:"Wau",p:118331},{n:"Malakal",p:114528},{n:"Yei",p:69720},{n:"Yambio",p:105881}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Haiti",f:"🇭🇹",c:"HTI",r:"Americas",p:11770000,cx:285.3,cy:198.4,sz:6,col:"#2060a0",cities:[{n:"Port-au-Prince",p:875978},{n:"Carrefour",p:430250},{n:"Cité Soleil",p:241055},{n:"Delmas",p:359451},{n:"Pétion-Ville",p:271175}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Belgium",f:"🇧🇪",c:"BEL",r:"Europe",p:11740000,cx:490.7,cy:95.6,sz:6,col:"#c8a020",cities:[{n:"Brussels",p:2081000},{n:"Antwerp",p:1042000},{n:"Ghent",p:466000},{n:"Liège",p:678000},{n:"Charleroi",p:413000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Jordan",f:"🇯🇴",c:"JOR",r:"Asia",p:11550000,cx:576.0,cy:163.0,sz:6,col:"#4a8c3f",cities:[{n:"Amman",p:2148000},{n:"Irbid",p:557000},{n:"Zarqa",p:729000},{n:"Russeifa",p:524000},{n:"Al-Quwaysimah",p:385000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Dominican Republic",f:"🇩🇴",c:"DOM",r:"Americas",p:11430000,cx:533.3,cy:250.0,sz:6,col:"#2060a0",cities:[{n:"Santiago de los Caballeros",p:550753},{n:"Santo Domingo",p:2581827},{n:"San Pedro de Macorís",p:185255},{n:"La Romana",p:224882},{n:"Los Alcarrizos",p:245269}],conquered:false,prog:[0,0,0,0,0]},
+{n:"United Arab Emirates",f:"🇦🇪",c:"ARE",r:"Asia",p:11030000,cx:624.0,cy:184.0,sz:6,col:"#4a8c3f",cities:[{n:"Dubai",p:2878000},{n:"Abu Dhabi",p:1483000},{n:"Sharjah",p:1685000},{n:"Ajman",p:392000},{n:"Al Ain",p:611000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Cuba",f:"🇨🇺",c:"CUB",r:"Americas",p:10980000,cx:266.7,cy:189.8,sz:6,col:"#2060a0",cities:[{n:"Havana",p:2131480},{n:"Santiago de Cuba",p:433581},{n:"Camagüey",p:308902},{n:"Santa Clara",p:216854},{n:"Holguín",p:297433}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Honduras",f:"🇭🇳",c:"HND",r:"Americas",p:10830000,cx:248.0,cy:209.5,sz:6,col:"#2060a0",cities:[{n:"Tegucigalpa",p:1079400},{n:"San Pedro Sula",p:661190},{n:"La Ceiba",p:195780},{n:"Choloma",p:196110},{n:"El Progreso",p:118740}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Czech Republic",f:"🇨🇿",c:"CZE",r:"Europe",p:10740000,cx:522.7,cy:95.6,sz:6,col:"#c8a020",cities:[{n:"Prague",p:1324277},{n:"Brno",p:381346},{n:"Plzeň",p:174842},{n:"Ostrava",p:287968},{n:"Liberec",p:104802}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Sweden",f:"🇸🇪",c:"SWE",r:"Europe",p:10610000,cx:522.7,cy:37.8,sz:6,col:"#c8a020",cities:[{n:"Stockholm",p:1758893},{n:"Malmö",p:321845},{n:"Gothenburg",p:651014},{n:"Uppsala",p:166049},{n:"Västerås",p:127799}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Tajikistan",f:"🇹🇯",c:"TJK",r:"Asia",p:10590000,cx:669.3,cy:136.9,sz:6,col:"#4a8c3f",cities:[{n:"Dushanbe",p:846400},{n:"Khujand",p:181600},{n:"Kulob",p:105500},{n:"Istaravshan",p:64400},{n:"Qurghonteppa",p:110800}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Papua New Guinea",f:"🇵🇬",c:"PNG",r:"Oceania",p:10580000,cx:864.0,cy:266.0,sz:6,col:"#8030a0",cities:[{n:"Port Moresby",p:364125},{n:"Lae",p:148934},{n:"Madang",p:35971},{n:"Mount Hagen",p:29765},{n:"Wewak",p:37825}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Portugal",f:"🇵🇹",c:"PRT",r:"Europe",p:10430000,cx:458.7,cy:136.9,sz:6,col:"#c8a020",cities:[{n:"Lisbon",p:552700},{n:"Porto",p:237591},{n:"Braga",p:136885},{n:"Vila Nova de Gaia",p:186502},{n:"Amadora",p:175136}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Azerbaijan",f:"🇦🇿",c:"AZE",r:"Asia",p:10340000,cx:608.0,cy:133.4,sz:6,col:"#4a8c3f",cities:[{n:"Baku",p:1229100},{n:"Ganja",p:328400},{n:"Sumqayit",p:297600},{n:"Mingachevir",p:101600},{n:"Xırdalan",p:96200}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Greece",f:"🇬🇷",c:"GRC",r:"Europe",p:10050000,cx:538.7,cy:136.9,sz:6,col:"#c8a020",cities:[{n:"Athens",p:3003104},{n:"Thessaloniki",p:777539},{n:"Heraklion",p:166341},{n:"Patras",p:196655},{n:"Larissa",p:159609}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Hungary",f:"🇭🇺",c:"HUN",r:"Europe",p:9680000,cx:530.7,cy:107.7,sz:6,col:"#c8a020",cities:[{n:"Budapest",p:1752286},{n:"Debrecen",p:201432},{n:"Pécs",p:142873},{n:"Szeged",p:160766},{n:"Miskolc",p:154521}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Togo",f:"🇹🇬",c:"TGO",r:"Africa",p:9520000,cx:482.7,cy:228.6,sz:6,col:"#cc5520",cities:[{n:"Kara",p:113100},{n:"Lomé",p:2090600},{n:"Sokodé",p:107700},{n:"Atakpamé",p:79800},{n:"Kpalimé",p:88100}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Israel",f:"🇮🇱",c:"ISR",r:"Asia",p:9390000,cx:573.3,cy:163.0,sz:6,col:"#4a8c3f",cities:[{n:"Jerusalem",p:919438},{n:"Tel Aviv-Jaffa",p:451523},{n:"Haifa",p:283640},{n:"Rishon LeZion",p:251719},{n:"Petah Tikva",p:244275}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Austria",f:"🇦🇹",c:"AUT",r:"Europe",p:9120000,cx:517.3,cy:107.7,sz:6,col:"#c8a020",cities:[{n:"Vienna",p:2237679},{n:"Salzburg",p:230276},{n:"Innsbruck",p:229233},{n:"Graz",p:348349},{n:"Linz",p:272398}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Belarus",f:"🇧🇾",c:"BLR",r:"Europe",p:9060000,cx:554.7,cy:82.7,sz:6,col:"#c8a020",cities:[{n:"Minsk",p:2028000},{n:"Gomel",p:558000},{n:"Grodno",p:387000},{n:"Vitebsk",p:378000},{n:"Mogilev",p:388000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Switzerland",f:"🇨🇭",c:"CHE",r:"Europe",p:8920000,cx:501.3,cy:107.7,sz:6,col:"#c8a020",cities:[{n:"Bern",p:430000},{n:"Zürich",p:1395000},{n:"Geneva",p:613000},{n:"Basel",p:559000},{n:"Lausanne",p:442000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Sierra Leone",f:"🇸🇱",c:"SLE",r:"Africa",p:8640000,cx:448.0,cy:228.6,sz:6,col:"#cc5520",cities:[{n:"Bo",p:174369},{n:"Freetown",p:1055964},{n:"Kenema",p:200443},{n:"Koidu",p:124662},{n:"Makeni",p:124634}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Laos",f:"🇱🇦",c:"LAO",r:"Asia",p:7770000,cx:754.7,cy:201.2,sz:6,col:"#4a8c3f",cities:[{n:"Vientiane",p:620157},{n:"Luangprabang",p:66781},{n:"Pakse",p:68093},{n:"Savannakhet",p:91684},{n:"Phonsavan",p:48643}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Turkmenistan",f:"🇹🇲",c:"TKM",r:"Asia",p:7490000,cx:634.7,cy:133.4,sz:6,col:"#4a8c3f",cities:[{n:"Ashgabat",p:947221},{n:"Mary",p:126141},{n:"Türkmenabat",p:279765},{n:"Daşoguz",p:245872},{n:"Serdar",p:93692}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Libya",f:"🇱🇾",c:"LBY",r:"Africa",p:7380000,cx:525.3,cy:178.2,sz:6,col:"#cc5520",cities:[{n:"Tripoli",p:1150989},{n:"Benghazi",p:650629},{n:"Misrata",p:386120},{n:"Al-Khums",p:201943},{n:"Tarhuna",p:210697}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Kyrgyzstan",f:"🇰🇬",c:"KGZ",r:"Asia",p:7190000,cx:677.3,cy:126.4,sz:6,col:"#4a8c3f",cities:[{n:"Bishkek",p:1039072},{n:"Osh",p:283253},{n:"Jalal-Abad",p:111135},{n:"Karakol",p:78130},{n:"Tokmok",p:66283}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Paraguay",f:"🇵🇾",c:"PRY",r:"Americas",p:6930000,cx:325.3,cy:313.1,sz:6,col:"#2060a0",cities:[{n:"Asunción",p:522300},{n:"Ciudad del Este",p:301800},{n:"Luque",p:256100},{n:"San Lorenzo",p:257500},{n:"Capiatá",p:236800}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Nicaragua",f:"🇳🇮",c:"NIC",r:"Americas",p:6920000,cx:253.3,cy:215.0,sz:6,col:"#2060a0",cities:[{n:"Managua",p:1038785},{n:"León",p:171255},{n:"Masaya",p:129980},{n:"Tipitapa",p:134103},{n:"Ciudad Sandino",p:115790}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bulgaria",f:"🇧🇬",c:"BGR",r:"Europe",p:6760000,cx:546.7,cy:122.8,sz:6,col:"#c8a020",cities:[{n:"Sofia",p:1242568},{n:"Ruse",p:141231},{n:"Varna",p:336216},{n:"Plovdiv",p:347851},{n:"Burgas",p:201779}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Serbia",f:"🇷🇸",c:"SRB",r:"Europe",p:6740000,cx:536.0,cy:119.1,sz:6,col:"#c8a020",cities:[{n:"Belgrade",p:1166763},{n:"Novi Sad",p:231798},{n:"Niš",p:183164},{n:"Kragujevac",p:150835},{n:"Subotica",p:97910}],conquered:false,prog:[0,0,0,0,0]},
+{n:"El Salvador",f:"🇸🇻",c:"SLV",r:"Americas",p:6340000,cx:242.7,cy:212.3,sz:6,col:"#2060a0",cities:[{n:"San Salvador",p:316090},{n:"San Miguel",p:158136},{n:"Santa Ana",p:204340},{n:"Mejicanos",p:140751},{n:"Soyapango",p:241403}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Congo",f:"🇨🇬",c:"COG",r:"Africa",p:6330000,cx:520.0,cy:252.7,sz:6,col:"#cc5520",cities:[{n:"Capital City",p:1055000},{n:"North District",p:791250},{n:"South District",p:633000},{n:"East District",p:527500},{n:"West District",p:452142}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Denmark",f:"🇩🇰",c:"DNK",r:"Europe",p:5980000,cx:506.7,cy:68.9,sz:6,col:"#c8a020",cities:[{n:"Copenhagen",p:1330993},{n:"Aarhus",p:280534},{n:"Aalborg",p:117351},{n:"Odense",p:180302},{n:"Esbjerg",p:72037}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Singapore",f:"🇸🇬",c:"SGP",r:"Asia",p:5830000,cx:757.3,cy:247.3,sz:6,col:"#4a8c3f",cities:[{n:"Singapore",p:5850342},{n:"North District",p:728750},{n:"South District",p:583000},{n:"East District",p:485833},{n:"West District",p:416428}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Lebanon",f:"🇱🇧",c:"LBN",r:"Asia",p:5810000,cx:573.3,cy:156.7,sz:6,col:"#4a8c3f",cities:[{n:"Tripoli",p:450000},{n:"Beirut",p:1650000},{n:"Tyre",p:125000},{n:"Sidon",p:250000},{n:"Zahlé",p:140000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Finland",f:"🇫🇮",c:"FIN",r:"Europe",p:5620000,cx:549.3,cy:26.0,sz:6,col:"#c8a020",cities:[{n:"Helsinki",p:1286172},{n:"Turku",p:274896},{n:"Tampere",p:337541},{n:"Oulu",p:202586},{n:"Jyväskylä",p:126606}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Liberia",f:"🇱🇷",c:"LBR",r:"Africa",p:5610000,cx:453.3,cy:234.0,sz:6,col:"#cc5520",cities:[{n:"Monrovia",p:1021762},{n:"Buchanan",p:50245},{n:"Ganta",p:42077},{n:"Gbarnga",p:56986},{n:"Kakata",p:34608}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Norway",f:"🇳🇴",c:"NOR",r:"Europe",p:5580000,cx:514.7,cy:26.0,sz:6,col:"#c8a020",cities:[{n:"Oslo",p:693494},{n:"Bergen",p:283929},{n:"Trondheim",p:205163},{n:"Stavanger",p:143574},{n:"Bærum",p:127731}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Slovakia",f:"🇸🇰",c:"SVK",r:"Europe",p:5510000,cx:530.7,cy:99.7,sz:6,col:"#c8a020",cities:[{n:"Bratislava",p:437726},{n:"Košice",p:238593},{n:"Žilina",p:80727},{n:"Prešov",p:88464},{n:"Banská Bystrica",p:78084}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Palestine",f:"🇵🇸",c:"PSE",r:"Asia",p:5500000,cx:573.3,cy:163.0,sz:6,col:"#4a8c3f",cities:[{n:"Capital City",p:916666},{n:"North District",p:687500},{n:"South District",p:550000},{n:"East District",p:458333},{n:"West District",p:392857}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Central African Republic",f:"🇨🇫",c:"CAF",r:"Africa",p:5330000,cx:533.3,cy:231.3,sz:6,col:"#cc5520",cities:[{n:"Bangui",p:622771},{n:"Bimbo",p:124176},{n:"Berbérati",p:76918},{n:"Carnot",p:45421},{n:"Bambari",p:41356}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Oman",f:"🇴🇲",c:"OMN",r:"Asia",p:5280000,cx:632.0,cy:192.7,sz:6,col:"#4a8c3f",cities:[{n:"Seeb",p:284877},{n:"Salalah",p:155309},{n:"Sohar",p:129759},{n:"Bawshar",p:187871},{n:"Muttrah",p:150067}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Ireland",f:"🇮🇪",c:"IRL",r:"Europe",p:5260000,cx:458.7,cy:82.7,sz:6,col:"#c8a020",cities:[{n:"Dublin",p:1173179},{n:"Cork",p:208669},{n:"Limerick",p:94192},{n:"Galway",p:79934},{n:"Waterford",p:53504}],conquered:false,prog:[0,0,0,0,0]},
+{n:"New Zealand",f:"🇳🇿",c:"NZL",r:"Oceania",p:5210000,cx:944.0,cy:370.1,sz:6,col:"#8030a0",cities:[{n:"Wellington",p:209420},{n:"Auckland",p:1402020},{n:"Christchurch",p:374100},{n:"Hamilton",p:165850},{n:"Tauranga",p:144670}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Mauritania",f:"🇲🇷",c:"MRT",r:"Africa",p:5170000,cx:450.7,cy:195.5,sz:6,col:"#cc5520",cities:[{n:"Nouakchott",p:958399},{n:"Nouadhibou",p:118167},{n:"Kiffa",p:50206},{n:"Zouérat",p:44649},{n:"Kaédi",p:45539}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Costa Rica",f:"🇨🇷",c:"CRI",r:"Americas",p:5130000,cx:256.0,cy:223.2,sz:6,col:"#2060a0",cities:[{n:"San José",p:1453500},{n:"Alajuela",p:196900},{n:"Cartago",p:232300},{n:"Heredia",p:367900},{n:"Puntarenas",p:87500}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Kuwait",f:"🇰🇼",c:"KWT",r:"Asia",p:4930000,cx:608.0,cy:169.1,sz:4,col:"#4a8c3f",cities:[{n:"Al Ahmadi",p:637411},{n:"Hawalli",p:164212},{n:"Al Farwaniyah",p:86525},{n:"Fahaheel",p:68290},{n:"Sabah Al-Salem",p:139163}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Panama",f:"🇵🇦",c:"PAN",r:"Americas",p:4520000,cx:266.7,cy:228.6,sz:4,col:"#2060a0",cities:[{n:"Panama City",p:430299},{n:"San Miguelito",p:315019},{n:"La Chorrera",p:118521},{n:"Las Cumbres",p:127440},{n:"Tocumen",p:113174}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Croatia",f:"🇭🇷",c:"HRV",r:"Europe",p:3880000,cx:520.0,cy:115.3,sz:4,col:"#c8a020",cities:[{n:"Zagreb",p:684620},{n:"Split",p:148014},{n:"Rijeka",p:114621},{n:"Zadar",p:73439},{n:"Osijek",p:78237}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Georgia",f:"🇬🇪",c:"GEO",r:"Asia",p:3810000,cx:594.7,cy:126.4,sz:4,col:"#4a8c3f",cities:[{n:"Tbilisi",p:1140700},{n:"Batumi",p:166000},{n:"Kutaisi",p:138200},{n:"Sukhumi",p:65439},{n:"Rustavi",p:128300}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Eritrea",f:"🇪🇷",c:"ERI",r:"Africa",p:3540000,cx:584.0,cy:209.5,sz:4,col:"#cc5520",cities:[{n:"Asmara",p:649707},{n:"Keren",p:146483},{n:"Agordat",p:47482},{n:"Mendefera",p:63492},{n:"Teseney",p:64889}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Mongolia",f:"🇲🇳",c:"MNG",r:"Asia",p:3480000,cx:533.3,cy:250.0,sz:4,col:"#4a8c3f",cities:[{n:"Ulaanbaatar",p:1373150},{n:"Mörön",p:40510},{n:"Erdenet",p:99490},{n:"Choibalsan",p:46710},{n:"Darkhan",p:84707}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Uruguay",f:"🇺🇾",c:"URY",r:"Americas",p:3390000,cx:330.7,cy:343.3,sz:4,col:"#2060a0",cities:[{n:"Montevideo",p:1304687},{n:"Ciudad de la Costa",p:95176},{n:"Salto",p:104011},{n:"Paysandú",p:76412},{n:"Las Piedras",p:71258}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bosnia and Herzegovina",f:"🇧🇦",c:"BIH",r:"Europe",p:3160000,cx:525.3,cy:119.1,sz:4,col:"#c8a020",cities:[{n:"Sarajevo",p:348363},{n:"Banja Luka",p:135059},{n:"Mostar",p:60195},{n:"Tuzla",p:74457},{n:"Zenica",p:70553}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Qatar",f:"🇶🇦",c:"QAT",r:"Asia",p:3050000,cx:616.0,cy:181.1,sz:4,col:"#4a8c3f",cities:[{n:"Doha",p:587055},{n:"Doha Industrial Area",p:364710},{n:"Al Rayyan",p:589531},{n:"Al-Shahaniya",p:138509},{n:"Al Wukair",p:165214}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Moldova",f:"🇲🇩",c:"MDA",r:"Europe",p:3030000,cx:557.3,cy:107.7,sz:4,col:"#c8a020",cities:[{n:"Chișinău",p:532513},{n:"Tiraspol",p:133807},{n:"Bălți",p:97930},{n:"Bender",p:91882},{n:"Rîbnița",p:47949}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Namibia",f:"🇳🇦",c:"NAM",r:"Africa",p:3030000,cx:525.3,cy:310.2,sz:4,col:"#cc5520",cities:[{n:"Windhoek",p:325858},{n:"Walvis Bay",p:62096},{n:"Swakopmund",p:44725},{n:"Rundu",p:63431},{n:"Oshakati",p:36541}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Armenia",f:"🇦🇲",c:"ARM",r:"Asia",p:2970000,cx:600.0,cy:133.4,sz:4,col:"#4a8c3f",cities:[{n:"Yerevan",p:1084000},{n:"Gyumri",p:112400},{n:"Vanadzor",p:77200},{n:"Abovyan",p:44900},{n:"Vagharshapat",p:46200}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Lithuania",f:"🇱🇹",c:"LTU",r:"Europe",p:2860000,cx:544.0,cy:68.9,sz:4,col:"#c8a020",cities:[{n:"Vilnius",p:550834},{n:"Kaunas",p:289364},{n:"Klaipėda",p:149116},{n:"Šiauliai",p:101511},{n:"Panevėžys",p:85885}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Jamaica",f:"🇯🇲",c:"JAM",r:"Americas",p:2840000,cx:274.7,cy:201.2,sz:4,col:"#2060a0",cities:[{n:"Kingston",p:590169},{n:"Portmore",p:212053},{n:"Montego Bay",p:125681},{n:"Spanish Town",p:164648},{n:"May Pen",p:66072}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Albania",f:"🇦🇱",c:"ALB",r:"Europe",p:2790000,cx:533.3,cy:129.9,sz:4,col:"#c8a020",cities:[{n:"Tirana",p:931515},{n:"Durrës",p:226823},{n:"Shkodër",p:105561},{n:"Vlorë",p:90771},{n:"Elbasan",p:105124}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Gambia",f:"🇬🇲",c:"GMB",r:"Africa",p:2760000,cx:437.3,cy:215.0,sz:4,col:"#cc5520",cities:[{n:"Banjul",p:34589},{n:"Serrekunda",p:340000},{n:"Bakau",p:43098},{n:"Brikama",p:77700},{n:"Farafenni",p:29867}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Gabon",f:"🇬🇦",c:"GAB",r:"Africa",p:2540000,cx:512.0,cy:252.7,sz:4,col:"#cc5520",cities:[{n:"Libreville",p:703940},{n:"Port-Gentil",p:136462},{n:"Franceville",p:110568},{n:"Owendo",p:79300},{n:"Oyem",p:60685}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Botswana",f:"🇧🇼",c:"BWA",r:"Africa",p:2520000,cx:544.0,cy:310.2,sz:4,col:"#cc5520",cities:[{n:"Gaborone",p:288349},{n:"Francistown",p:117959},{n:"Maun",p:82959},{n:"Molepolole",p:80969},{n:"Mogoditshane",p:102706}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Lesotho",f:"🇱🇸",c:"LSO",r:"Africa",p:2340000,cx:554.7,cy:330.9,sz:4,col:"#cc5520",cities:[{n:"Maseru",p:330760},{n:"Hlotse",p:38558},{n:"Mafeteng",p:39754},{n:"Maputsoe",p:55541},{n:"Mohale's Hoek",p:40040}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Guinea-Bissau",f:"🇬🇼",c:"GNB",r:"Africa",p:2200000,cx:440.0,cy:217.8,sz:4,col:"#cc5520",cities:[{n:"Bissau",p:387909},{n:"Bafatá",p:29556},{n:"Gabu",p:43556},{n:"Bissorã",p:9898},{n:"Canchungo",p:12044}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Slovenia",f:"🇸🇮",c:"SVN",r:"Europe",p:2120000,cx:520.0,cy:111.5,sz:4,col:"#c8a020",cities:[{n:"Ljubljana",p:286745},{n:"Maribor",p:96211},{n:"Koper",p:25753},{n:"Celje",p:37872},{n:"Kranj",p:37941}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Equatorial Guinea",f:"🇬🇶",c:"GNQ",r:"Africa",p:1890000,cx:506.7,cy:244.7,sz:4,col:"#cc5520",cities:[{n:"Malabo",p:155963},{n:"Bata",p:173046},{n:"Aconibe",p:11192},{n:"Añisoc",p:10191},{n:"Ebebiyín",p:24831}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Latvia",f:"🇱🇻",c:"LVA",r:"Europe",p:1870000,cx:546.7,cy:64.1,sz:4,col:"#c8a020",cities:[{n:"Riga",p:627487},{n:"Daugavpils",p:82046},{n:"Liepāja",p:68535},{n:"Jūrmala",p:49687},{n:"Jelgava",p:56062}],conquered:false,prog:[0,0,0,0,0]},
+{n:"North Macedonia",f:"🇲🇰",c:"MKD",r:"Europe",p:1820000,cx:538.7,cy:129.9,sz:4,col:"#c8a020",cities:[{n:"Skopje",p:509900},{n:"Bitola",p:71350},{n:"Kumanovo",p:73590},{n:"Tetovo",p:56580},{n:"Prilep",p:64290}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bahrain",f:"🇧🇭",c:"BHR",r:"Asia",p:1610000,cx:533.3,cy:250.0,sz:4,col:"#4a8c3f",cities:[{n:"Manama",p:143035},{n:"A'ali",p:47529},{n:"Hamad Town",p:52718},{n:"Muharraq",p:91307},{n:"Riffa",p:79550}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Trinidad and Tobago",f:"🇹🇹",c:"TTO",r:"Americas",p:1510000,cx:317.3,cy:223.2,sz:4,col:"#2060a0",cities:[{n:"Port of Spain",p:37074},{n:"Chaguanas",p:83516},{n:"San Fernando",p:48838},{n:"Arima",p:33606},{n:"Sangre Grande",p:20710}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Timor-Leste",f:"🇹🇱",c:"TLS",r:"Asia",p:1400000,cx:813.3,cy:274.1,sz:4,col:"#4a8c3f",cities:[{n:"Capital City",p:233333},{n:"North District",p:175000},{n:"South District",p:140000},{n:"East District",p:116666},{n:"West District",p:100000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Estonia",f:"🇪🇪",c:"EST",r:"Europe",p:1360000,cx:546.7,cy:54.0,sz:4,col:"#c8a020",cities:[{n:"Tallinn",p:437619},{n:"Tartu",p:92972},{n:"Narva",p:54409},{n:"Pärnu",p:39605},{n:"Kohtla-Järve",p:33197}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Cyprus",f:"🇨🇾",c:"CYP",r:"Asia",p:1360000,cx:568.0,cy:150.3,sz:4,col:"#4a8c3f",cities:[{n:"Nicosia",p:119282},{n:"Limassol",p:108233},{n:"Larnaca",p:56764},{n:"Lakatámeia",p:51633},{n:"Stróvolos",p:78786}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Mauritius",f:"🇲🇺",c:"MUS",r:"Africa",p:1270000,cx:632.0,cy:304.5,sz:4,col:"#cc5520",cities:[{n:"Port Louis",p:147448},{n:"Vacoas-Phoenix",p:106022},{n:"Beau Bassin-Rose Hill",p:104086},{n:"Curepipe",p:78692},{n:"Quatre Bornes",p:77308}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Eswatini",f:"🇸🇿",c:"SWZ",r:"Africa",p:1240000,cx:562.7,cy:321.8,sz:4,col:"#cc5520",cities:[{n:"Mbabane",p:76218},{n:"Manzini",p:110537},{n:"Big Bend",p:10342},{n:"Malkerns",p:9724},{n:"Nhlangano",p:9016}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Djibouti",f:"🇩🇯",c:"DJI",r:"Africa",p:1170000,cx:594.7,cy:217.8,sz:4,col:"#cc5520",cities:[{n:"Djibouti",p:475322},{n:"Arta",p:13260},{n:"Ali Sabieh",p:37939},{n:"Tadjourah",p:14820},{n:"Dikhil",p:24886}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Fiji",f:"🇫🇯",c:"FJI",r:"Oceania",p:928790,cx:957.3,cy:298.8,sz:3,col:"#8030a0",cities:[{n:"Suva",p:185913},{n:"Nadi",p:71048},{n:"Lautoka",p:71573},{n:"Labasa",p:26601},{n:"Nausori",p:57882}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Comoros",f:"🇰🇲",c:"COM",r:"Africa",p:866640,cx:597.3,cy:282.2,sz:3,col:"#cc5520",cities:[{n:"Moroni",p:53617},{n:"Fomboni",p:19259},{n:"Mirontsi",p:10843},{n:"Mutsamudu",p:26228},{n:"Ouani",p:10956}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Guyana",f:"🇬🇾",c:"GUY",r:"Americas",p:831100,cx:322.7,cy:236.6,sz:3,col:"#2060a0",cities:[{n:"Georgetown",p:118369},{n:"Linden",p:28674},{n:"Paradise",p:16332},{n:"Golden Grove",p:23129},{n:"Lusignan",p:18928}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Solomon Islands",f:"🇸🇧",c:"SLB",r:"Oceania",p:819210,cx:906.7,cy:271.4,sz:3,col:"#8030a0",cities:[{n:"Honiara",p:80551},{n:"Auki",p:5105},{n:"Gizo",p:3547},{n:"Munda",p:2843},{n:"Noro",p:3365}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bhutan",f:"🇧🇹",c:"BTN",r:"Asia",p:791530,cx:720.0,cy:175.2,sz:3,col:"#4a8c3f",cities:[{n:"Thimphu",p:114551},{n:"Paro",p:11448},{n:"Phuntsholing",p:27658},{n:"Gelephu",p:9858},{n:"Samdrup Jongkhar",p:9325}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Luxembourg",f:"🇱🇺",c:"LUX",r:"Europe",p:673050,cx:496.0,cy:99.7,sz:3,col:"#c8a020",cities:[{n:"Luxembourg",p:174290},{n:"Esch-sur-Alzette",p:92470},{n:"Dudelange",p:21291},{n:"Ettelbruck",p:20711},{n:"Pétange",p:30038}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Montenegro",f:"🇲🇪",c:"MNE",r:"Europe",p:638490,cx:530.7,cy:122.8,sz:3,col:"#c8a020",cities:[{n:"Bar",p:13503},{n:"Podgorica",p:150977},{n:"Nikšić",p:56970},{n:"Cetinje",p:13918},{n:"Pljevlja",p:19136}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Suriname",f:"🇸🇷",c:"SUR",r:"Americas",p:634440,cx:330.7,cy:239.3,sz:3,col:"#2060a0",cities:[{n:"Paramaribo",p:240924},{n:"Lelydorp",p:18663},{n:"De Nieuwe Grond",p:26161},{n:"Houttuin",p:15656},{n:"Koewarasan",p:27713}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Malta",f:"🇲🇹",c:"MLT",r:"Europe",p:539620,cx:517.3,cy:147.0,sz:3,col:"#c8a020",cities:[{n:"Mosta",p:20988},{n:"St. Paul's Bay",p:29097},{n:"Birkirkara",p:24356},{n:"Sliema",p:22591},{n:"Qormi",p:16801}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Maldives",f:"🇲🇻",c:"MDV",r:"Asia",p:527810,cx:674.7,cy:239.3,sz:3,col:"#4a8c3f",cities:[{n:"Malé",p:127079},{n:"Fuvahmulah",p:8510},{n:"Hithadhoo",p:11129},{n:"Hulhumalé",p:15769},{n:"Kulhudhuffushi",p:8440}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Micronesia",f:"🇫🇲",c:"FSM",r:"Oceania",p:526930,cx:882.7,cy:231.3,sz:3,col:"#8030a0",cities:[{n:"Capital City",p:87821},{n:"North District",p:65866},{n:"South District",p:52693},{n:"East District",p:43910},{n:"West District",p:37637}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Cabo Verde",f:"🇨🇻",c:"CPV",r:"Africa",p:524890,cx:416.0,cy:206.8,sz:3,col:"#cc5520",cities:[{n:"Capital City",p:87481},{n:"North District",p:65611},{n:"South District",p:52489},{n:"East District",p:43740},{n:"West District",p:37492}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Brunei",f:"🇧🇳",c:"BRN",r:"Asia",p:462730,cx:786.7,cy:239.3,sz:3,col:"#4a8c3f",cities:[{n:"Bandar Seri Begawan",p:202715},{n:"Kuala Belait",p:31890},{n:"Seria",p:9147},{n:"Lumut",p:9462},{n:"Sengkurong",p:20327}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Belize",f:"🇧🇿",c:"BLZ",r:"Americas",p:417080,cx:245.3,cy:204.0,sz:3,col:"#2060a0",cities:[{n:"Belmopan",p:24294},{n:"Belize City",p:64287},{n:"San Pedro",p:20542},{n:"Orange Walk Town",p:13669},{n:"San Ignacio",p:22951}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Bahamas",f:"🇧🇸",c:"BHS",r:"Americas",p:401290,cx:272.0,cy:181.1,sz:3,col:"#2060a0",cities:[{n:"Nassau",p:246329},{n:"Freeport",p:28000},{n:"Marsh Harbour",p:4368},{n:"Murphy Town",p:1938},{n:"Dundas Town",p:2890}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Iceland",f:"🇮🇸",c:"ISL",r:"Europe",p:393400,cx:432.0,cy:19.8,sz:3,col:"#c8a020",cities:[{n:"Reykjavík",p:222776},{n:"Keflavík-Njarðvík",p:18809},{n:"Akureyri",p:18769},{n:"Akranes",p:7463},{n:"Selfoss",p:8068}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Vanuatu",f:"🇻🇺",c:"VUT",r:"Oceania",p:327790,cx:925.3,cy:293.2,sz:3,col:"#8030a0",cities:[{n:"Port Vila",p:35901},{n:"Luganville",p:13397},{n:"Isangel",p:1437},{n:"Norsup",p:2998},{n:"Port-Olry",p:1951}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Barbados",f:"🇧🇧",c:"BRB",r:"Americas",p:282470,cx:322.7,cy:215.0,sz:3,col:"#2060a0",cities:[{n:"Bridgetown",p:98511},{n:"Bathsheba",p:1765},{n:"Holetown",p:1350},{n:"Oistins",p:2285},{n:"Speightstown",p:3634}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Sao Tome and Principe",f:"🇸🇹",c:"STP",r:"Africa",p:235550,cx:496.0,cy:250.0,sz:3,col:"#cc5520",cities:[{n:"Capital City",p:39258},{n:"North District",p:29443},{n:"South District",p:23555},{n:"East District",p:19629},{n:"West District",p:16825}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Samoa",f:"🇼🇸",c:"WSM",r:"Oceania",p:218030,cx:21.3,cy:287.7,sz:3,col:"#8030a0",cities:[{n:"Apia",p:37391},{n:"Le'auva'a",p:3457},{n:"Faleasiu",p:4260},{n:"Vailele",p:3122},{n:"Vaitele",p:7299}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Saint Lucia",f:"🇱🇨",c:"LCA",r:"Americas",p:179750,cx:317.3,cy:212.3,sz:3,col:"#2060a0",cities:[{n:"Castries",p:10634},{n:"Babonneau",p:5138},{n:"Bexon",p:7119},{n:"Ciceron",p:3577},{n:"Dennery",p:3051}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Kiribati",f:"🇰🇮",c:"KIR",r:"Oceania",p:134530,cx:946.7,cy:250.0,sz:3,col:"#8030a0",cities:[{n:"Tarawa",p:40311},{n:"Bairiki",p:2766},{n:"Betio",p:12509},{n:"Bikenibeu",p:6170},{n:"Teaoraereke",p:3939}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Seychelles",f:"🇸🇨",c:"SYC",r:"Africa",p:130430,cx:626.7,cy:263.4,sz:3,col:"#cc5520",cities:[{n:"Victoria",p:26127},{n:"Anse Etoile",p:4935},{n:"Anse Royale",p:4665},{n:"Baie Saint Anne",p:4786},{n:"Perseverance",p:4586}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Grenada",f:"🇬🇩",c:"GRD",r:"Americas",p:117220,cx:314.7,cy:217.8,sz:3,col:"#2060a0",cities:[{n:"Victoria",p:2256},{n:"St. George's",p:7500},{n:"Gouyave",p:3378},{n:"Grenville",p:2476},{n:"Saint David’s",p:1321}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Tonga",f:"🇹🇴",c:"TON",r:"Oceania",p:104180,cx:13.3,cy:307.3,sz:3,col:"#8030a0",cities:[{n:"Nuku'alofa",p:23221},{n:"Haveluloto",p:3476},{n:"Neiafu",p:3731},{n:"Tofoa",p:3489},{n:"Vaini",p:3361}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Saint Vincent and the Grenadines",f:"🇻🇨",c:"VCT",r:"Americas",p:100630,cx:533.3,cy:250.0,sz:3,col:"#2060a0",cities:[{n:"Kingstown",p:24518},{n:"Georgetown",p:1680},{n:"Barrouallie",p:1000},{n:"Biabou",p:1050},{n:"Byera Village",p:1365}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Antigua and Barbuda",f:"🇦🇬",c:"ATG",r:"Americas",p:93770,cx:533.3,cy:250.0,sz:3,col:"#2060a0",cities:[{n:"Saint John's",p:24451},{n:"All Saints",p:3900},{n:"Bolans",p:1888},{n:"Liberta",p:2560},{n:"Potters Village",p:2066}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Andorra",f:"🇦🇩",c:"AND",r:"Europe",p:81950,cx:482.7,cy:126.4,sz:3,col:"#c8a020",cities:[{n:"Andorra la Vella",p:19383},{n:"Sant Julià de Lòria",p:7636},{n:"Encamp",p:7575},{n:"Escaldes-Engordany",p:14599},{n:"La Massana",p:5353}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Dominica",f:"🇩🇲",c:"DMA",r:"Americas",p:66220,cx:533.3,cy:250.0,sz:3,col:"#2060a0",cities:[{n:"Roseau",p:14725},{n:"Salisbury",p:2147},{n:"Portsmouth",p:4167},{n:"Canefield",p:3324},{n:"Marigot",p:2411}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Saint Kitts and Nevis",f:"🇰🇳",c:"KNA",r:"Americas",p:46850,cx:533.3,cy:250.0,sz:3,col:"#2060a0",cities:[{n:"Basseterre",p:12920},{n:"Saint Paul’s",p:2460},{n:"Figtree",p:2922},{n:"Market Shop",p:2568},{n:"Middle Island",p:2332}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Liechtenstein",f:"🇱🇮",c:"LIE",r:"Europe",p:39870,cx:504.0,cy:107.7,sz:3,col:"#c8a020",cities:[{n:"Schaan",p:6039},{n:"Vaduz",p:5696},{n:"Balzers",p:4642},{n:"Eschen",p:4466},{n:"Triesen",p:5275}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Monaco",f:"🇲🇨",c:"MCO",r:"Europe",p:38640,cx:498.7,cy:119.1,sz:3,col:"#c8a020",cities:[{n:"Monaco",p:39242},{n:"North District",p:4830},{n:"South District",p:3864},{n:"East District",p:3220},{n:"West District",p:2760}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Marshall Islands",f:"🇲🇭",c:"MHL",r:"Oceania",p:37560,cx:533.3,cy:250.0,sz:3,col:"#8030a0",cities:[{n:"Majuro",p:25400},{n:"Arno",p:2068},{n:"Ebaye",p:15000},{n:"Jabor",p:1200},{n:"Wotje",p:880}],conquered:false,prog:[0,0,0,0,0]},
+{n:"San Marino",f:"🇸🇲",c:"SMR",r:"Europe",p:33590,cx:512.0,cy:119.1,sz:3,col:"#c8a020",cities:[{n:"San Marino",p:4063},{n:"Serravalle",p:10976},{n:"Borgo Maggiore",p:6946},{n:"Domagnano",p:3584},{n:"Fiorentino",p:2552}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Palau",f:"🇵🇼",c:"PLW",r:"Oceania",p:17700,cx:837.3,cy:231.3,sz:3,col:"#8030a0",cities:[{n:"Koror",p:9781},{n:"Airai",p:1928},{n:"Meyuns",p:1679},{n:"Ngetkib",p:529},{n:"West District",p:1264}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Nauru",f:"🇳🇷",c:"NRU",r:"Oceania",p:11960,cx:925.3,cy:252.7,sz:3,col:"#8030a0",cities:[{n:"Yaren",p:747},{n:"Boe",p:851},{n:"Aiwo",p:1220},{n:"Buada",p:739},{n:"Meneng",p:1380}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Tuvalu",f:"🇹🇻",c:"TUV",r:"Oceania",p:9650,cx:957.3,cy:271.4,sz:3,col:"#8030a0",cities:[{n:"Funafuti",p:6111},{n:"Asau",p:650},{n:"Vaiaku",p:516},{n:"East District",p:1000},{n:"West District",p:1000}],conquered:false,prog:[0,0,0,0,0]},
+{n:"Vatican City",f:"🇻🇦",c:"VAT",r:"Europe",p:496,cx:512.0,cy:126.4,sz:3,col:"#c8a020",cities:[{n:"Vatican City",p:801},{n:"North District",p:1000},{n:"South District",p:1000},{n:"East District",p:1000},{n:"West District",p:1000}],conquered:false,prog:[0,0,0,0,0]}];
+const ISO={4:"Afghanistan",8:"Albania",12:"Algeria",20:"Andorra",24:"Angola",32:"Argentina",36:"Australia",40:"Austria",44:"Bahamas",50:"Bangladesh",52:"Barbados",56:"Belgium",64:"Bhutan",68:"Bolivia",70:"Bosnia and Herzegovina",72:"Botswana",76:"Brazil",84:"Belize",90:"Solomon Islands",96:"Brunei",100:"Bulgaria",104:"Myanmar",108:"Burundi",116:"Cambodia",120:"Cameroon",124:"Canada",132:"Cabo Verde",140:"Central African Republic",144:"Sri Lanka",148:"Chad",152:"Chile",156:"China",170:"Colombia",174:"Comoros",178:"Congo",180:"Democratic Republic of the Congo",188:"Costa Rica",191:"Croatia",192:"Cuba",196:"Cyprus",203:"Czech Republic",204:"Benin",208:"Denmark",218:"Ecuador",222:"El Salvador",226:"Equatorial Guinea",231:"Ethiopia",232:"Eritrea",233:"Estonia",242:"Fiji",246:"Finland",250:"France",262:"Djibouti",266:"Gabon",268:"Georgia",270:"Gambia",275:"Palestine",276:"Germany",288:"Ghana",296:"Kiribati",300:"Greece",308:"Grenada",320:"Guatemala",324:"Guinea",328:"Guyana",332:"Haiti",336:"Vatican City",340:"Honduras",348:"Hungary",352:"Iceland",356:"India",360:"Indonesia",364:"Iran",368:"Iraq",372:"Ireland",376:"Israel",380:"Italy",388:"Jamaica",392:"Japan",400:"Jordan",398:"Kazakhstan",404:"Kenya",408:"North Korea",410:"South Korea",414:"Kuwait",417:"Kyrgyzstan",418:"Laos",422:"Lebanon",426:"Lesotho",430:"Liberia",434:"Libya",438:"Liechtenstein",440:"Lithuania",442:"Luxembourg",454:"Malawi",458:"Malaysia",462:"Maldives",466:"Mali",470:"Malta",478:"Mauritania",480:"Mauritius",484:"Mexico",492:"Monaco",496:"Mongolia",498:"Moldova",499:"Montenegro",504:"Morocco",508:"Mozambique",516:"Namibia",520:"Nauru",524:"Nepal",528:"Netherlands",548:"Vanuatu",554:"New Zealand",558:"Nicaragua",562:"Niger",566:"Nigeria",578:"Norway",583:"Micronesia",585:"Palau",586:"Pakistan",591:"Panama",598:"Papua New Guinea",600:"Paraguay",604:"Peru",608:"Philippines",616:"Poland",620:"Portugal",634:"Qatar",642:"Romania",643:"Russia",646:"Rwanda",682:"Saudi Arabia",686:"Senegal",688:"Serbia",694:"Sierra Leone",703:"Slovakia",705:"Slovenia",706:"Somalia",710:"South Africa",716:"Zimbabwe",724:"Spain",728:"South Sudan",729:"Sudan",740:"Suriname",748:"Eswatini",752:"Sweden",756:"Switzerland",760:"Syria",762:"Tajikistan",764:"Thailand",768:"Togo",776:"Tonga",780:"Trinidad and Tobago",788:"Tunisia",792:"Turkey",795:"Turkmenistan",798:"Tuvalu",800:"Uganda",804:"Ukraine",784:"United Arab Emirates",826:"United Kingdom",840:"United States",858:"Uruguay",860:"Uzbekistan",862:"Venezuela",704:"Vietnam",882:"Samoa",887:"Yemen",894:"Zambia",31:"Azerbaijan",51:"Armenia",807:"North Macedonia",384:"Cote d'Ivoire",624:"Guinea-Bissau",690:"Seychelles",854:"Burkina Faso",626:"Timor-Leste",678:"Sao Tome and Principe"};
+</script>
+<script>
+const G={gb:600000,army:100000,votes:0,conquered:1,panel:'ov',curCountry:null,curCityIdx:null,earnCD:{},invState:{quizBonus:false}};
+const fmt=n=>Number(n).toLocaleString();
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const fmtM=n=>{if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(0)+'K';return String(n);};
+
+const RCOL={Asia:'#2d6a20',Europe:'#7a5a10',Africa:'#7a3010',Americas:'#104a80',Oceania:'#601880'};
+const RHOV={Asia:'#3d8a30',Europe:'#9a7a20',Africa:'#9a4020',Americas:'#206a9a',Oceania:'#7a28a0'};
+function getCCol(id){const n=ISO[id];if(!n)return'#1a2535';const c=CD.find(x=>x.n===n);if(!c)return'#1a2535';return c.conquered?'#10b981':RCOL[c.r]||'#2a3a4a';}
+function getCHov(id){const n=ISO[id];if(!n)return'#2a3a4a';const c=CD.find(x=>x.n===n);if(!c)return'#2a3a4a';return c.conquered?'#059669':RHOV[c.r]||'#3a4a5a';}
+
+// World map (D3 + Natural Earth projection)
+const W=960,H=500;
+let proj,pathG,svgS;
+
+async function buildMap(){
+  const loading=document.getElementById('map-loading');
+  svgS=d3.select('#world-svg');svgS.selectAll('*').remove();
+  let world;
+  try{world=await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');}
+  catch(e){loading.innerHTML='<span style="color:#f87171">&#x26A0; Map failed. Check internet.</span>';return;}
+  loading.style.display='none';
+  proj=d3.geoNaturalEarth1().scale(153).translate([W/2,H/2+10]);
+  pathG=d3.geoPath().projection(proj);
+  // Ocean
+  svgS.append('path').datum({type:'Sphere'}).attr('fill','#0d2040').attr('d',pathG);
+  // Graticule
+  svgS.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(100,160,220,0.12)').attr('stroke-width','0.4').attr('d',pathG);
+  // Countries
+  const countries=topojson.feature(world,world.objects.countries);
+  svgS.selectAll('path.country').data(countries.features).enter().append('path')
+    .attr('class','country').attr('d',pathG)
+    .attr('fill',d=>getCCol(d.id))
+    .attr('stroke','rgba(0,0,0,0.55)').attr('stroke-width','0.4')
+    .attr('cursor',d=>{const n=ISO[d.id];const c=CD.find(x=>x.n===n);return(c&&!c.conquered)?'pointer':'default';})
+    .on('mouseenter',function(event,d){
+      const n=ISO[d.id];const c=CD.find(x=>x.n===n);
+      if(!c||c.conquered)return;
+      d3.select(this).attr('fill',getCHov(d.id));
+      const t=document.getElementById('tip');
+      t.innerHTML='<b>'+c.f+' '+n+'</b> &mdash; Pop: '+fmtM(c.p)+'<br><span style="color:var(--dim)">Click to invade &bull; 5 cities to conquer</span>';
+      t.style.display='block';posTip(event);
+    })
+    .on('mousemove',posTip)
+    .on('mouseleave',function(event,d){
+      d3.select(this).attr('fill',getCCol(d.id));
+      document.getElementById('tip').style.display='none';
+    })
+    .on('click',(event,d)=>{const n=ISO[d.id];if(n)openCountry(n);});
+  // Borders
+  svgS.append('path').datum(topojson.mesh(world,world.objects.countries,(a,b)=>a!==b))
+    .attr('fill','none').attr('stroke','rgba(0,0,0,0.5)').attr('stroke-width','0.4').attr('d',pathG);
+  // Sphere outline
+  svgS.append('path').datum({type:'Sphere'}).attr('fill','none').attr('stroke','#1e4a7a').attr('stroke-width','1.5').attr('d',pathG);
+  // Labels for large countries
+  countries.features.forEach(f=>{
+    const n=ISO[f.id];if(!n)return;
+    const c=CD.find(x=>x.n===n);if(!c||c.p<60000000)return;
+    try{
+      const cen=pathG.centroid(f);
+      if(!cen||isNaN(cen[0])||isNaN(cen[1]))return;
+      const s=c.n.length>10?c.n.substring(0,9)+'\u2026':c.n;
+      svgS.append('text').attr('x',cen[0]).attr('y',cen[1]+2)
+        .attr('text-anchor','middle')
+        .attr('fill',c.conquered?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.45)')
+        .attr('font-size',c.p>500000000?'7':'5.5')
+        .attr('font-family','Arial,sans-serif')
+        .attr('pointer-events','none')
+        .attr('font-weight',c.p>200000000?'700':'400')
+        .text(c.conquered?'✓ '+s:s);
+    }catch(e){}
+  });
+}
+
+function posTip(event){
+  const t=document.getElementById('tip');
+  const tw=t.offsetWidth||160,th=t.offsetHeight||40;
+  t.style.left=Math.min(event.clientX+14,window.innerWidth-tw-8)+'px';
+  t.style.top=Math.max(event.clientY-th-6,4)+'px';
+}
+
+function refreshColor(name){
+  const numId=Object.entries(ISO).find(([k,v])=>v===name)?.[0];
+  if(!numId||!svgS)return;
+  svgS.selectAll('path.country').filter(d=>String(d.id)===String(numId))
+    .attr('fill','#10b981').attr('cursor','default');
+}
+
+// COUNTRY PANEL
+function openCountry(name){
+  const c=CD.find(x=>x.n===name);if(!c||c.conquered)return;
+  G.curCountry=name;
+  document.getElementById('cp').style.cssText='display:flex;flex-direction:column;height:100%;overflow:hidden';
+  setP('_cp');
+  document.getElementById('cp-flag').textContent=c.f;
+  document.getElementById('cp-name').textContent=name;
+  const allDone=c.prog.every(p=>p>=100);
+  document.getElementById('cp-status').textContent=allDone?'All cities captured!':c.r+' | Pop: '+fmtM(c.p);
+  document.getElementById('cp-info').innerHTML=
+    '<b style="color:var(--text)">Population:</b> '+fmtM(c.p)+'<br>'+
+    '<b style="color:var(--text)">Vote threshold:</b> '+fmtM(Math.floor(c.p/2)+1)+'<br>'+
+    '<b style="color:var(--text)">Cities conquered:</b> '+c.prog.filter(p=>p>=100).length+'/5';
+  const el=document.getElementById('cp-cities');el.innerHTML='';
+  c.cities.forEach((city,idx)=>{
+    const done=c.prog[idx]>=100;
+    const defenders=Math.floor(city.p*0.08);
+    const needed=Math.floor(defenders*1.2);
+    const div=document.createElement('div');div.className='cc'+(done?' done':'');
+    div.innerHTML=`<div class="cc-top"><div class="cc-nm">${done?'✅ ':''}${city.n}</div><div class="cc-pop">${fmtM(city.p)}</div></div><div class="cc-bar"><div class="cc-fill${done?' done':''}" style="width:${c.prog[idx]}%"></div></div><div class="cc-info">${done?'Conquered!':'Control: '+c.prog[idx]+'% | Defenders: '+fmt(defenders)+' | Need: '+fmt(needed)+' sol.'}</div>${!done?`<div class="cc-btns"><button class="cbt red" onclick="openInv('${name}',${idx})">&#x2694; Invade</button><button class="cbt" onclick="doPropCity('${name}',${idx})">&#x1F4E2; Prop.</button></div>`:''}`;
+    el.appendChild(div);
+  });
+  document.getElementById('cp-full').style.display=(!allDone&&G.army>0)?'block':'none';
+  if(allDone&&!c.conquered){
+    c.conquered=true;G.conquered++;
+    const gbR=Math.floor(c.p/10000),solR=Math.floor(c.p/50000);
+    G.gb+=gbR;G.army+=solR;
+    log('🏆 '+name+' CONQUERED! +'+fmt(gbR)+' GB +'+fmt(solR)+' soldiers!','g');
+    refreshColor(name);updateUI();checkWin();
+    document.getElementById('cp-status').textContent='✅ CONQUERED!';
+  }
+}
+function closeCP(){G.curCountry=null;document.getElementById('cp').style.display='none';setP(G.panel);}
+function fullInvasion(){
+  const c=CD.find(x=>x.n===G.curCountry);if(!c)return;
+  let total=0;c.cities.forEach((city,i)=>{if(c.prog[i]<100)total+=Math.floor(city.p*0.08*1.2);});
+  if(G.army<total){alert('Need '+fmt(total)+' soldiers. You have '+fmt(G.army)+'.');return;}
+  c.cities.forEach((city,i)=>{if(c.prog[i]<100){G.army-=Math.floor(city.p*0.08*0.6);c.prog[i]=100;}});
+  log('⚔️ Full invasion of '+G.curCountry+'!','g');
+  openCountry(G.curCountry);updateUI();
+}
+
+// INVASION MODAL
+function openInv(name,idx){
+  const c=CD.find(x=>x.n===name);if(!c)return;
+  G.curCountry=name;G.curCityIdx=idx;G.invState={quizBonus:false};
+  const city=c.cities[idx];
+  const defenders=Math.floor(city.p*0.08),needed=Math.floor(defenders*1.2);
+  document.getElementById('it').textContent='⚔️ INVADE '+city.n.toUpperCase();
+  document.getElementById('is').textContent='Overcome the defenders. Chemistry quiz gives +30% combat bonus.';
+  document.getElementById('iv-cp').textContent=fmtM(city.p);
+  document.getElementById('iv-def').textContent=fmt(defenders);
+  document.getElementById('iv-sol').textContent=fmt(G.army);
+  document.getElementById('iv-need').textContent=fmt(needed);
+  document.getElementById('iq-btn').disabled=false;
+  document.getElementById('iq-btn').textContent='⚗️ Chemistry Quiz → +30% combat power';
+  document.getElementById('iatk-btn').disabled=G.army<Math.floor(needed*0.4);
+  document.getElementById('ires').style.display='none';
+  document.getElementById('inv').classList.add('on');
+}
+function closeInv(){document.getElementById('inv').classList.remove('on');if(G.curCountry)openCountry(G.curCountry);}
+function doAttack(){
+  const c=CD.find(x=>x.n===G.curCountry);if(!c)return;
+  const city=c.cities[G.curCityIdx];
+  const defenders=Math.floor(city.p*0.08);
+  const mult=G.invState.quizBonus?0.7:1.0;
+  const needed=Math.floor(defenders*1.2*mult);
+  if(G.army<Math.floor(needed*0.4)){showIR('Not enough soldiers!','b');return;}
+  const chance=Math.min(0.95,0.55+(G.army/(needed||1))*0.25+(G.invState.quizBonus?0.15:0));
+  const win=Math.random()<chance;
+  const lost=win?rand(Math.floor(needed*0.3),Math.floor(needed*0.55)):rand(Math.floor(needed*0.4),Math.min(needed,G.army));
+  G.army=Math.max(0,G.army-lost);
+  if(win){
+    c.prog[G.curCityIdx]=100;
+    const gbR=Math.floor(city.p*0.005);G.gb+=gbR;
+    showIR('🏆 '+city.n+' CAPTURED! Lost '+fmt(lost)+' soldiers. +'+fmt(gbR)+' GB.','g');
+    log('⚔️ '+city.n+' captured! -'+fmt(lost)+' sol, +'+fmt(gbR)+' GB.','g');
+    G.invState.quizBonus=false;setTimeout(()=>closeInv(),2000);
+  }else{
+    showIR('💀 Attack repelled! Lost '+fmt(lost)+' soldiers.','b');
+    log('⚔️ Failed at '+city.n+'. -'+fmt(lost)+' soldiers.','b');
+  }
+  updateUI();
+}
+function doProp(){doPropCity(G.curCountry,G.curCityIdx);}
+function doPropCity(name,idx){
+  const c=CD.find(x=>x.n===name);if(!c)return;
+  const gain=rand(5,15);c.prog[idx]=Math.min(99,c.prog[idx]+gain);
+  if(G.gb>=500)G.gb-=500;
+  showIR('📢 Propaganda: +'+gain+'% control in '+c.cities[idx].n+'.','w');
+  log('📢 Propaganda in '+c.cities[idx].n+' (+'+gain+'%).','w');
+  updateUI();if(G.curCountry===name)setTimeout(()=>openCountry(name),1500);
+}
+function showIR(msg,t){
+  const el=document.getElementById('ires');el.style.display='block';
+  const cols={g:['rgba(16,185,129,.12)','var(--grnl)','var(--grn)'],b:['rgba(239,68,68,.12)','var(--redl)','var(--red)'],w:['rgba(210,153,34,.12)','var(--goldl)','var(--goldl)']};
+  const [bg,col,brd]=cols[t]||cols.w;
+  el.style.cssText=`display:block;font-size:11px;font-weight:700;padding:9px;border-radius:7px;margin-bottom:6px;line-height:1.6;background:${bg};color:${col};border-left:3px solid ${brd}`;
+  el.textContent=msg;
+}
+
+// QUIZ
+const QQ=[
+  {q:"Which element has the highest electronegativity?",o:["Oxygen","Nitrogen","Fluorine","Chlorine"],a:2,e:"Fluorine — EN 3.98. The electron gangsta."},
+  {q:"Molar mass of CO₂? (C=12,O=16)",o:["28 g/mol","32 g/mol","44 g/mol","56 g/mol"],a:2,e:"12+2×16=44 g/mol."},
+  {q:"PV=nRT is the...",o:["Boyle's Law","Charles's Law","Ideal Gas Law","Dalton's Law"],a:2,e:"Ideal Gas Law."},
+  {q:"Oxidation state of Cr in K₂Cr₂O₇?",o:["+3","+5","+6","+7"],a:2,e:"2(+1)+2Cr+7(-2)=0 → Cr=+6."},
+  {q:"Beta decay emits...",o:["Alpha","Electron","Gamma","Proton"],a:1,e:"Neutron → proton + electron."},
+  {q:"VSEPR shape of CH₄?",o:["Linear","Trigonal planar","Tetrahedral","Octahedral"],a:2,e:"4 bonds, 0 lone pairs → tetrahedral."},
+  {q:"pH of 0.01M HCl?",o:["1","2","3","4"],a:1,e:"pH=-log(10⁻²)=2."},
+  {q:"Oxidation occurs at the...",o:["Cathode","Anode","Salt bridge","Both"],a:1,e:"OIL RIG: Oxidation Is Loss at the Anode."},
+  {q:"Which nonmetal is liquid at room temperature?",o:["Bromine","Gallium","Cesium","Francium"],a:0,e:"Bromine (Br₂)."},
+  {q:"Avogadro's number?",o:["6.02×10²³","3.14×10⁸","9.81×10²","1.38×10⁻²³"],a:0,e:"6.02×10²³ per mole."},
+  {q:"Molarity formula?",o:["M=mass/vol","M=mol×vol","M=mol/L","M=density×MW"],a:2,e:"Moles of solute per liter of solution."},
+  {q:"Le Chatelier: adding product shifts equilibrium...",o:["Right","Left","No change","Both"],a:1,e:"Shifts LEFT to consume excess."},
+  {q:"Acid + base →",o:["Combustion","Neutralization","Decomposition","Synthesis"],a:1,e:"Neutralization: acid+base → salt+water."},
+  {q:"Atomic number of Carbon?",o:["12","6","8","14"],a:1,e:"Carbon has 6 protons."},
+  {q:"Strongest bond type?",o:["Single","Double","Triple","Equal"],a:2,e:"Triple bonds have highest bond energy."},
+];
+function startCityQ(){
+  const q=QQ[Math.floor(Math.random()*QQ.length)];
+  document.getElementById('qov').classList.add('on');
+  document.getElementById('qtxt').textContent=q.q;document.getElementById('qfb').textContent='';
+  const opts=document.getElementById('qopts');opts.innerHTML='';
+  q.o.forEach((o,i)=>{
+    const b=document.createElement('button');b.className='qo';b.textContent=o;
+    b.onclick=()=>{
+      document.querySelectorAll('.qo').forEach(x=>x.disabled=true);
+      if(i===q.a){
+        b.classList.add('ok');
+        document.getElementById('qfb').style.color='var(--grnl)';
+        document.getElementById('qfb').textContent='✅ Correct! '+q.e+' +30% bonus!';
+        G.invState.quizBonus=true;
+        document.getElementById('iq-btn').disabled=true;
+        document.getElementById('iq-btn').textContent='✅ Bonus Applied (+30%)';
+        const c=CD.find(x=>x.n===G.curCountry);
+        if(c){const def=Math.floor(c.cities[G.curCityIdx].p*0.08);document.getElementById('iatk-btn').disabled=G.army<Math.floor(def*1.2*0.7*0.4);}
+        setTimeout(closeQ,1800);
+      }else{
+        b.classList.add('no');document.querySelectorAll('.qo')[q.a].classList.add('ok');
+        document.getElementById('qfb').style.color='var(--redl)';
+        document.getElementById('qfb').textContent='❌ Wrong. '+q.e;
+        setTimeout(closeQ,2200);
+      }
+    };opts.appendChild(b);
+  });
+}
+function closeQ(){document.getElementById('qov').classList.remove('on');}
+
+// EARN
+const EARNS=[
+  {id:'chem_patent',icon:'⚗️',name:'Chemistry Patent',cat:'Chemistry',desc:'Patent a new compound.',gb:[50000,150000],cd:60},
+  {id:'pharma',icon:'💊',name:'Pharmaceutical Deal',cat:'Chemistry',desc:'Sell a medication formula to Big Pharma.',gb:[80000,200000],cd:90},
+  {id:'lab_contract',icon:'🔬',name:'Govt Lab Contract',cat:'Chemistry',desc:'Win a federal research contract.',gb:[30000,80000],cd:45},
+  {id:'chem_tv',icon:'📺',name:'Chemistry TV Special',cat:'Chemistry',desc:'Host a prime-time chemistry show.',gb:[20000,60000],votes:[500000,2000000],cd:45},
+  {id:'nuke_consult',icon:'☢️',name:'Nuclear Consulting',cat:'Chemistry',desc:'Governments pay for expertise.',gb:[200000,500000],cd:120},
+  {id:'lecture',icon:'🎓',name:'University Lecture Tour',cat:'Chemistry',desc:'Tour 20 universities.',gb:[15000,40000],votes:[200000,500000],cd:30},
+  {id:'tax',icon:'🏛️',name:'Tax Reform Bill',cat:'Politics',desc:'Push global tax legislation.',gb:[100000,300000],cd:90},
+  {id:'corp',icon:'💼',name:'Corporate Donations',cat:'Politics',desc:'Multinationals donate to Keith.',gb:[50000,200000],cd:60},
+  {id:'rally',icon:'🎤',name:'World Political Rally',cat:'Politics',desc:'Rally broadcast globally.',votes:[500000,2000000],cd:60},
+  {id:'tv_ad',icon:'📡',name:'Global TV Ad Campaign',cat:'Politics',desc:'Buy airtime worldwide.',votes:[1000000,5000000],cost:50000,cd:90},
+  {id:'arms',icon:'⚔️',name:'International Arms Deal',cat:'Military',desc:'Broker weapons deals.',gb:[300000,800000],cd:90},
+  {id:'recruit',icon:'🪖',name:'Recruitment Drive',cat:'Military',desc:'Nationwide recruitment.',soldiers:[5000,15000],cd:45},
+];
+function renderEarn(){
+  const el=document.getElementById('earn-list');el.innerHTML='';
+  let lastCat='';
+  EARNS.forEach(item=>{
+    if(item.cat!==lastCat){
+      const h=document.createElement('div');
+      h.style.cssText='font-size:9px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;padding:8px 4px 4px;font-weight:700';
+      h.textContent=item.cat;el.appendChild(h);lastCat=item.cat;
+    }
+    const now=Date.now(),cd=G.earnCD[item.id]||0,ready=now>=cd,rem=ready?0:Math.ceil((cd-now)/1000);
+    const div=document.createElement('div');div.className='ec';
+    let bgs='';
+    if(item.gb)bgs+=`<span class="bg bgy">+${fmt(item.gb[0])}–${fmt(item.gb[1])} GB</span>`;
+    if(item.votes)bgs+=`<span class="bg bgg">+${fmt(item.votes[0])}–${fmt(item.votes[1])} influence</span>`;
+    if(item.soldiers)bgs+=`<span class="bg bgb">+${fmt(item.soldiers[0])}–${fmt(item.soldiers[1])} soldiers</span>`;
+    if(item.cost)bgs+=`<span class="bg bgr">Cost: ${fmt(item.cost)} GB</span>`;
+    div.innerHTML=`<div class="ec-r"><div class="ec-i">${item.icon}</div><div><div class="ec-n">${item.name}</div><div class="ec-d">${item.desc}</div></div></div><div class="bgs">${bgs}</div><button class="ebtn" ${!ready||(item.cost&&G.gb<item.cost)?'disabled':''} onclick="doEarn('${item.id}')">${!ready?'⏳ '+rem+'s':'Activate'}</button>`;
+    el.appendChild(div);
+  });
+}
+function doEarn(id){
+  const item=EARNS.find(i=>i.id===id);if(!item)return;
+  if(item.cost&&G.gb<item.cost){log('Not enough GB!','b');return;}
+  if(item.cost)G.gb-=item.cost;
+  let msg='';
+  if(item.gb){const g=rand(item.gb[0],item.gb[1]);G.gb+=g;msg+='+'+fmt(g)+' GB. ';}
+  if(item.votes){const v=rand(item.votes[0],item.votes[1]);G.votes+=v;msg+='+'+fmt(v)+' influence. ';}
+  if(item.soldiers){const s=rand(item.soldiers[0],item.soldiers[1]);G.army+=s;msg+='+'+fmt(s)+' soldiers. ';}
+  G.earnCD[id]=Date.now()+item.cd*1000;
+  log(item.icon+' '+item.name+': '+msg,'g');
+  updateUI();setTimeout(()=>{if(G.panel==='earn')renderEarn();},1100);
+}
+
+// ARMY
+function renderArmy(){
+  const el=document.getElementById('army-list');el.innerHTML='';
+  const stats=document.createElement('div');
+  stats.style.cssText='background:var(--b2);border-radius:8px;padding:12px;margin-bottom:10px;border:1px solid var(--brd)';
+  stats.innerHTML=`<div style="font-size:11px;font-weight:700;color:#ffbb44;margin-bottom:7px">💪 Army Stats</div><div style="font-size:10px;color:var(--dim);line-height:1.9">Soldiers: <strong style="color:var(--text)">${fmt(G.army)}</strong><br>Countries: <strong style="color:var(--grn)">${G.conquered}/195</strong><br>Recruit: <strong style="color:var(--text)">10 GB/soldier</strong></div>`;
+  el.appendChild(stats);
+  const custom=document.createElement('div');custom.className='ec';
+  custom.innerHTML=`<div class="ec-r"><div class="ec-i">🪖</div><div><div class="ec-n">Custom Recruitment</div><div class="ec-d">10 GB per soldier.</div></div></div><div style="display:flex;gap:7px;align-items:center;margin-bottom:7px"><input id="ac" type="number" min="1" max="10000000" value="1000" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--brd);border-radius:6px;padding:7px;font-family:Courier New,monospace;font-size:11px;outline:none"><div style="font-size:10px;color:var(--dim)">×10 GB</div></div><div style="font-size:10px;color:var(--dim);margin-bottom:6px">Cost: <span id="ac-cost">10,000 GB</span></div><button class="ebtn" onclick="recruitCustom()">Recruit</button>`;
+  el.appendChild(custom);
+  document.getElementById('ac')?.addEventListener('input',function(){document.getElementById('ac-cost').textContent=fmt((parseInt(this.value)||0)*10)+' GB';});
+  [{cost:5000,sol:1000},{cost:50000,sol:15000},{cost:200000,sol:80000}].forEach(pkg=>{
+    const d=document.createElement('div');d.className='ec';
+    d.innerHTML=`<div class="ec-r"><div class="ec-i">⭐</div><div><div class="ec-n">${fmt(pkg.sol)} Soldier Package</div><div class="ec-d">Bulk deal.</div></div></div><div class="bgs"><span class="bg bgy">${fmt(pkg.cost)} GB</span><span class="bg bgb">+${fmt(pkg.sol)} soldiers</span></div><button class="ebtn" onclick="recruitPkg(${pkg.cost},${pkg.sol})" ${G.gb<pkg.cost?'disabled':''}>Recruit</button>`;
+    el.appendChild(d);
+  });
+}
+function recruitCustom(){
+  const n=parseInt(document.getElementById('ac')?.value)||0;if(n<1)return;
+  const cost=n*10;if(G.gb<cost){log('Need '+fmt(cost)+' GB for '+fmt(n)+' soldiers','b');return;}
+  G.gb-=cost;G.army+=n;log('💪 Recruited '+fmt(n)+' soldiers for '+fmt(cost)+' GB','g');
+  updateUI();renderArmy();
+}
+function recruitPkg(cost,sol){
+  if(G.gb<cost){log('Not enough GB!','b');return;}
+  G.gb-=cost;G.army+=sol;log('💪 Recruited '+fmt(sol)+' soldiers for '+fmt(cost)+' GB!','g');
+  updateUI();renderArmy();
+}
+
+// PANELS
+function setP(p){
+  if(p!=='_cp'){G.panel=p;document.getElementById('cp').style.display='none';}
+  ['ov','earn','army'].forEach(x=>{document.getElementById('pnl-'+x).className='pnl'+(x===p?'':' off');});
+  document.querySelectorAll('.nb').forEach((b,i)=>{b.classList.toggle('on',['ov','earn','army'][i]===p);});
+  if(p==='earn')renderEarn();if(p==='army')renderArmy();
+}
+function updateUI(){
+  document.getElementById('h-gb').textContent=fmt(G.gb);
+  document.getElementById('h-army').textContent=fmt(G.army);
+  document.getElementById('h-con').textContent=G.conquered;
+  document.getElementById('s-gb').textContent=fmt(G.gb);
+  document.getElementById('s-army').textContent=fmt(G.army);
+  document.getElementById('s-con').textContent=G.conquered;
+  document.getElementById('s-v').textContent=fmt(G.votes);
+  document.getElementById('ff').style.width=Math.min(100,Math.round(G.conquered/195*100))+'%';
+  document.getElementById('fv').textContent=G.conquered+' / 195';
+}
+function checkWin(){if(G.conquered>=195)document.getElementById('vic').classList.add('on');}
+function log(msg,t){
+  const el=document.getElementById('log');
+  const d=document.createElement('div');d.className='le'+(t?' '+t:'');d.innerHTML=msg;
+  el.insertBefore(d,el.firstChild);while(el.children.length>80)el.removeChild(el.lastChild);
+}
+
+buildMap();setP('ov');updateUI();
+
+</script>
+</body>
+</html>

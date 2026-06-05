@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Keith Dominion</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--panel:#0f1923;--b2:#161f2a;--brd:#1e2d3d;--grn:#10b981;--grnl:#34d399;--gold:#d29922;--goldl:#f0b429;--red:#ef4444;--redl:#f87171;--blue:#3b82f6;--bluel:#60a5fa;--pur:#7c3aed;--muted:#4b5e6e;--text:#c9d8e8;--dim:#7a8fa3;--amb:#f59e0b}
+body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text)}
+#gd{display:flex;flex-direction:column;height:640px;border-radius:12px;overflow:hidden;border:1px solid var(--brd);position:relative}
+#gd-hdr{background:var(--panel);border-bottom:1px solid var(--brd);padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;z-index:5}
+.hd-t{font-size:12px;font-weight:700;color:var(--goldl);letter-spacing:1.5px}
+.hd-stage{font-size:9px;color:var(--dim);letter-spacing:1px}
+.hd-stats{display:flex;gap:12px;align-items:center}
+.hd-s{font-size:11px;color:var(--dim);display:flex;gap:4px;align-items:center}
+.hd-s strong{color:var(--text);font-size:12px}
+.hd-nav{display:flex;gap:4px}
+.nb{padding:5px 9px;border:1px solid var(--brd);border-radius:6px;background:transparent;color:var(--dim);font-family:'Courier New',monospace;font-size:10px;cursor:pointer;font-weight:700;transition:all .15s}
+.nb:hover{color:var(--text);border-color:var(--text)}.nb.on{background:var(--grn);color:#000;border-color:var(--grn)}
+#gd-body{flex:1;display:flex;overflow:hidden;min-height:0}
+#gd-map{flex:1;position:relative;overflow:hidden;transition:opacity .5s}
+#gd-map.fading{opacity:0}
+#gd-right{width:258px;background:var(--panel);border-left:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#gd-foot{background:var(--panel);border-top:1px solid var(--brd);padding:7px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.fp-l{font-size:9px;color:var(--dim);letter-spacing:1.5px;white-space:nowrap;text-transform:uppercase}
+.fp-b{flex:1;height:7px;background:var(--brd);border-radius:4px;overflow:hidden}
+.fp-f{height:100%;background:var(--grn);border-radius:4px;transition:width .5s}
+#vote-pct{font-size:10px;color:var(--grn);font-weight:700;white-space:nowrap}
+/* PANELS */
+#p-ov,#p-sh,#p-lb{display:flex;flex-direction:column;height:100%;overflow:hidden}
+#p-sh,#p-lb{display:none}
+.pov-b{border-bottom:1px solid var(--brd);padding:9px 12px}
+.pov-l{font-size:9px;color:var(--dim);letter-spacing:1.5px;margin-bottom:6px;text-transform:uppercase}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.sc{background:var(--b2);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+.sv{font-size:14px;font-weight:700}.sk{font-size:9px;color:var(--dim)}
+#p-log{flex:1;overflow-y:auto;padding:7px 10px;display:flex;flex-direction:column;gap:4px}
+#p-log::-webkit-scrollbar{width:3px}
+#p-log::-webkit-scrollbar-thumb{background:var(--brd)}
+.le{font-size:10px;line-height:1.5;padding:4px 7px;border-left:2px solid var(--brd);color:var(--dim)}
+.le.g{border-color:var(--grn);color:#6ee7b7}.le.b{border-color:var(--red);color:#fca5a5}
+.le.w{border-color:var(--goldl);color:#fcd34d}.le.i{border-color:var(--bluel);color:#93c5fd}
+.le.a{border-color:var(--amb);color:#fbbf24}
+#elect-btn{margin:8px;padding:10px;background:var(--goldl);color:#000;border:none;border-radius:8px;font-family:'Courier New',monospace;font-weight:700;font-size:12px;cursor:pointer;display:none;letter-spacing:1px}
+/* SHOP - 2 rows of 4 tabs */
+.st-grid{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--brd);flex-shrink:0}
+.stb{padding:6px 2px;font-size:9px;text-align:center;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;transition:all .15s}
+.stb:hover{color:var(--text)}.stb.on{color:var(--goldl);border-color:var(--gold);background:rgba(210,153,34,.06)}
+.sl{flex:1;overflow-y:auto;padding:8px}
+.sl::-webkit-scrollbar{width:3px}
+.sl::-webkit-scrollbar-thumb{background:var(--brd)}
+.si{background:var(--b2);border:1px solid var(--brd);border-radius:8px;padding:9px;margin-bottom:6px;position:relative}
+.si.lk{opacity:.5}
+.si-r{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px}
+.si-ic{font-size:18px;flex-shrink:0;width:28px;text-align:center}
+.si-nm{font-size:11px;font-weight:700;margin-bottom:2px}
+.si-ds{font-size:9px;color:var(--dim);line-height:1.5}
+.si-bg{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.bg{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600}
+.bgr{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.bgg{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.2)}
+.bgb{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2)}
+.bgy{background:rgba(210,153,34,.12);color:#f0b429;border:1px solid rgba(210,153,34,.2)}
+.bgp{background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.2)}
+.si-by{width:100%;padding:6px;background:transparent;border:1px solid var(--grn);border-radius:5px;color:var(--grnl);font-family:'Courier New',monospace;font-size:10px;cursor:pointer;font-weight:700;transition:all .15s}
+.si-by:hover:not(:disabled){background:rgba(16,185,129,.1)}
+.si-by:disabled{border-color:var(--brd);color:var(--muted);cursor:not-allowed}
+.lkt{position:absolute;top:6px;right:6px;background:var(--pur);color:#fff;font-size:8px;padding:2px 5px;border-radius:3px;font-weight:700}
+.si-by.instant{border-color:var(--goldl);color:var(--goldl)}
+.si-by.instant:hover:not(:disabled){background:rgba(240,180,40,.1)}
+/* LAB */
+.lh{background:#0a1a0a;border-bottom:1px solid var(--brd);padding:8px 12px;flex-shrink:0}
+.lt{font-size:11px;font-weight:700;color:var(--grnl);letter-spacing:1px}
+.ls{font-size:9px;color:var(--dim);margin-top:1px}
+.is{flex:1;overflow-y:auto;padding:8px}
+.is::-webkit-scrollbar{width:3px}
+.is::-webkit-scrollbar-thumb{background:var(--brd)}
+.ie{background:var(--b2);border:1px solid var(--brd);border-radius:8px;padding:9px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.ie:hover{border-color:var(--grnl)}
+.ie-r{display:flex;align-items:center;gap:7px}
+.ie-ic{font-size:18px}.ie-nm{font-size:11px;font-weight:700;flex:1}.ie-q{font-size:10px;color:var(--goldl);font-weight:700}
+#lm{display:none;position:absolute;inset:0;background:rgba(0,0,0,.88);z-index:20;flex-direction:column;overflow:auto;padding:14px}
+#lm.on{display:flex}
+.lm-t{font-size:13px;font-weight:700;color:var(--goldl);margin-bottom:4px}
+.lm-x{position:absolute;top:10px;right:12px;background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;padding:4px}
+.cb{background:#0e1e0e;border:2px solid #1a3a1a;border-radius:8px;padding:10px 12px;margin:10px 0;font-size:10px;line-height:1.9;color:#7eba7e;font-family:'Courier New',monospace}
+.cb .el{color:#4a8a4a;font-size:9px;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
+.cb .eq{color:#a0d4a0;font-size:11px;margin-bottom:8px}
+.la{display:flex;flex-direction:column;gap:7px;margin:6px 0}
+.lb2{padding:9px 12px;border:1px solid var(--brd);border-radius:7px;background:var(--b2);color:var(--text);font-family:'Courier New',monospace;font-size:11px;cursor:pointer;text-align:left;font-weight:700;transition:all .15s}
+.lb2:hover:not(:disabled){border-color:var(--goldl);color:var(--goldl)}
+.lb2:disabled{opacity:.4;cursor:not-allowed}
+.lr{background:var(--b2);border:1px solid var(--brd);border-radius:7px;padding:10px;margin-top:8px;font-size:10px;line-height:1.7;display:none}
+.lr.on{display:block}
+/* QUIZ */
+#qm{display:none;position:absolute;inset:0;background:rgba(5,8,12,.96);z-index:50;flex-direction:column;align-items:center;padding:18px;overflow-y:auto}
+#qm.on{display:flex}
+#qm::-webkit-scrollbar{width:3px}
+#qm::-webkit-scrollbar-thumb{background:var(--brd)}
+.qh{width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.qt{font-size:13px;font-weight:700;color:var(--amb);letter-spacing:1px}
+.qx{background:transparent;border:1px solid var(--brd);border-radius:6px;color:var(--dim);font-size:10px;padding:4px 10px;cursor:pointer;font-family:'Courier New',monospace}
+.qtch{display:flex;align-items:center;gap:12px;background:var(--b2);border:1px solid var(--brd);border-radius:10px;padding:12px;width:100%;margin-bottom:12px}
+.qti{font-size:30px}.qtn{font-size:12px;font-weight:700}.qts{font-size:10px;color:var(--dim);margin-top:2px;line-height:1.5}
+.qpr{width:100%;margin-bottom:10px}
+.qpr-r{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.qpl{font-size:10px;color:var(--dim)}.qps{font-size:11px;font-weight:700;color:var(--amb)}
+.qpb{width:100%;height:5px;background:var(--brd);border-radius:3px;overflow:hidden}
+.qpf{height:100%;background:var(--amb);border-radius:3px;transition:width .3s}
+.qds{display:flex;gap:4px;margin-top:6px}
+.qd{width:18px;height:8px;border-radius:2px;background:var(--brd)}
+.qd.r{background:var(--grn)}.qd.w{background:var(--red)}.qd.c{background:var(--amb)}
+.qqb{width:100%;background:var(--b2);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-bottom:10px}
+.qqn{font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.qqt{font-size:13px;color:var(--text);line-height:1.6;font-weight:700}
+.qos{display:flex;flex-direction:column;gap:6px;width:100%}
+.qo{padding:10px 14px;border:1px solid var(--brd);border-radius:8px;background:var(--b2);color:var(--text);font-family:'Courier New',monospace;font-size:11px;cursor:pointer;text-align:left;transition:all .15s;font-weight:600}
+.qo:hover:not(:disabled){border-color:var(--amb);color:var(--amb);background:rgba(245,158,11,.06)}
+.qo.ok{border-color:var(--grn);color:var(--grnl);background:rgba(16,185,129,.1)}
+.qo.no{border-color:var(--red);color:var(--redl);background:rgba(239,68,68,.1)}
+.qo:disabled{cursor:not-allowed}
+.qfb{font-size:10px;margin:8px 0;min-height:16px;font-weight:700;text-align:center}
+.qnx{padding:10px 24px;border:none;border-radius:8px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;display:none;letter-spacing:.5px;margin-top:4px}
+.qres{display:none;width:100%;text-align:center;flex-direction:column;align-items:center;gap:10px}
+.qres.on{display:flex}
+.qri{font-size:48px}.qrt{font-size:18px;font-weight:700}
+.qrs{font-size:28px;font-weight:700;padding:12px 24px;border-radius:10px;margin:4px 0}
+.qrb{padding:11px 24px;border:none;border-radius:8px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;margin:4px;letter-spacing:.5px}
+.qrsub{font-size:11px;color:var(--dim);line-height:1.7;max-width:340px}
+/* PROBLEM MODAL */
+#pm{display:none;position:absolute;inset:0;background:rgba(5,8,12,.95);z-index:60;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#pm.on{display:flex}
+/* VICTORY OVERLAY */
+#vo{display:none;position:absolute;inset:0;background:rgba(5,8,12,.97);z-index:70;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+#vo.on{display:flex}
+#vo-icon{font-size:64px}
+#vo-title{font-size:22px;font-weight:700;color:var(--goldl)}
+#vo-sub{font-size:13px;color:var(--dim);line-height:1.7;max-width:360px}
+#vo-gb{font-size:18px;color:var(--grnl);font-weight:700}
+#vo-btn{padding:12px 28px;background:var(--goldl);color:#000;border:none;border-radius:8px;font-family:'Courier New',monospace;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="gd">
+<div id="gd-hdr">
+  <div><div class="hd-t">&#x2697;&#xFE0F; KEITH DOMINION</div><div class="hd-stage" id="hd-stage">STAGE 1 &mdash; NYACK, NY</div></div>
+  <div class="hd-stats">
+    <div class="hd-s">&#x1F4B5; <strong id="h-gb">750</strong></div>
+    <div class="hd-s">&#x1F465; <strong id="h-pop">4,999</strong></div>
+    <div class="hd-s">&#x1F5F3;&#xFE0F; <strong id="h-v">0</strong>/<span id="h-n">2,500</span></div>
+    <div class="hd-s">&#x1F912; <strong id="h-sk">0</strong></div>
+  </div>
+  <div class="hd-nav">
+    <button class="nb on" onclick="setPanel('ov')">&#x1F4CD; MAP</button>
+    <button class="nb" onclick="setPanel('sh')">&#x1F6D2; SHOP</button>
+    <button class="nb" onclick="setPanel('lb')">&#x2697; LAB</button>
+  </div>
+</div>
+<div id="gd-body">
+  <div id="gd-map">
+
+    <!-- NYACK STREET MAP (reference-accurate style) -->
+    <svg id="map-nyack" width="100%" height="100%" viewBox="0 0 440 400" xmlns="http://www.w3.org/2000/svg">
+      <!-- Land (sandy tan) -->
+      <rect width="440" height="400" fill="#e8c070"/>
+      <!-- Hudson River (light blue, irregular west bank coastline) -->
+      <polygon points="355,0 440,0 440,400 330,400 306,378 294,352 311,325 323,298 303,270 316,242 297,214 314,186 301,158 315,130 303,102 318,74 340,48 355,0" fill="#a8d8f0"/>
+      <!-- Memorial Park (green, lower right by river) -->
+      <polygon points="272,396 299,381 328,396 328,400 272,400" fill="#7aaa50"/>
+
+      <!-- ROADS -->
+      <!-- N Broadway (major diagonal NNW-SSE) -->
+      <line x1="198" y1="0" x2="18" y2="400" stroke="#aaa" stroke-width="5"/>
+      <!-- S Broadway continues same line, just relabeled -->
+
+      <!-- Numbered Avenues (roughly horizontal, crossing Broadway) -->
+      <line x1="120" y1="52" x2="285" y2="52" stroke="#bbb" stroke-width="2.5"/>
+      <line x1="102" y1="98" x2="286" y2="98" stroke="#bbb" stroke-width="2.5"/>
+      <line x1="86" y1="143" x2="292" y2="143" stroke="#bbb" stroke-width="2.5"/>
+      <line x1="74" y1="178" x2="308" y2="178" stroke="#bbb" stroke-width="2.5"/>
+      <!-- Marion St (short, upper left) -->
+      <line x1="48" y1="101" x2="90" y2="99" stroke="#bbb" stroke-width="1.5"/>
+      <!-- High Ave -->
+      <line x1="106" y1="213" x2="342" y2="213" stroke="#bbb" stroke-width="2.5"/>
+      <!-- New St (short, left of broadway near High) -->
+      <line x1="22" y1="236" x2="115" y2="233" stroke="#bbb" stroke-width="2"/>
+      <!-- Main St (bold major road) -->
+      <line x1="50" y1="263" x2="390" y2="263" stroke="#999" stroke-width="5"/>
+      <!-- Lydecker St (slight diagonal below Main) -->
+      <line x1="183" y1="271" x2="318" y2="281" stroke="#bbb" stroke-width="2"/>
+      <!-- Gedney St (diagonal, east toward river) -->
+      <line x1="291" y1="210" x2="362" y2="295" stroke="#bbb" stroke-width="2"/>
+      <!-- Piermont Ave (diagonal south) -->
+      <line x1="177" y1="294" x2="249" y2="390" stroke="#bbb" stroke-width="2"/>
+      <!-- Artopee Way (near river, arcing) -->
+      <path d="M320,296 Q345,314 377,342" stroke="#bbb" stroke-width="2" fill="none"/>
+      <!-- Remsen St -->
+      <line x1="44" y1="324" x2="280" y2="322" stroke="#bbb" stroke-width="2"/>
+      <!-- Spear St -->
+      <line x1="58" y1="358" x2="278" y2="354" stroke="#bbb" stroke-width="2"/>
+      <!-- Depew Ave -->
+      <line x1="38" y1="390" x2="186" y2="386" stroke="#bbb" stroke-width="2"/>
+
+      <!-- ROAD LABELS -->
+      <text transform="rotate(-27 185 195)" x="150" y="200" fill="#333" font-size="8.5" font-family="Arial,sans-serif" font-weight="bold">N Broadway</text>
+      <text transform="rotate(-27 63 335)" x="28" y="340" fill="#333" font-size="8.5" font-family="Arial,sans-serif" font-weight="bold">S Broadway</text>
+      <text x="158" y="45" fill="#333" font-size="7" font-family="Arial,sans-serif">4th Ave</text>
+      <text x="158" y="91" fill="#333" font-size="7" font-family="Arial,sans-serif">3rd Ave</text>
+      <text x="158" y="136" fill="#333" font-size="7" font-family="Arial,sans-serif">2nd Ave</text>
+      <text x="158" y="171" fill="#333" font-size="7" font-family="Arial,sans-serif">1st Ave</text>
+      <text x="46" y="95" fill="#333" font-size="6" font-family="Arial,sans-serif">Marion St</text>
+      <text x="168" y="206" fill="#333" font-size="7" font-family="Arial,sans-serif">High Ave</text>
+      <text x="26" y="230" fill="#333" font-size="6" font-family="Arial,sans-serif">New St</text>
+      <text x="56" y="255" fill="#333" font-size="10" font-family="Arial,sans-serif" font-weight="bold">Main St</text>
+      <text x="202" y="266" fill="#333" font-size="7" font-family="Arial,sans-serif">Lydecker St</text>
+      <text transform="rotate(47 305 247)" x="295" y="247" fill="#333" font-size="6.5" font-family="Arial,sans-serif">Gedney St</text>
+      <text transform="rotate(58 200 332)" x="186" y="332" fill="#333" font-size="6.5" font-family="Arial,sans-serif">Piermont Ave</text>
+      <text x="332" y="310" fill="#333" font-size="6.5" font-family="Arial,sans-serif">Artopee Way</text>
+      <text x="62" y="317" fill="#333" font-size="7" font-family="Arial,sans-serif">Remsen St</text>
+      <text x="78" y="350" fill="#333" font-size="7" font-family="Arial,sans-serif">Spear St</text>
+      <text x="52" y="384" fill="#333" font-size="7" font-family="Arial,sans-serif">Depew Ave</text>
+      <text x="275" y="393" fill="#446624" font-size="7" font-family="Arial,sans-serif">Memorial Park</text>
+      <!-- River label -->
+      <text x="416" y="200" fill="#4a88b0" font-size="8.5" font-family="Arial,sans-serif" text-anchor="middle" transform="rotate(-90 416 200)">Hudson River</text>
+      <!-- Town name -->
+      <text x="64" y="180" fill="#111" font-size="20" font-family="Arial,sans-serif" font-weight="bold" font-style="italic">Nyack</text>
+
+      <!-- INTERACTIVE MARKERS -->
+      <!-- High School (near 2nd Ave / Broadway) -->
+      <g style="cursor:pointer" onclick="openSchool('nyack')">
+        <circle cx="168" cy="138" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="2"/>
+        <text x="168" y="142" fill="#222" font-size="9" text-anchor="middle" font-family="Arial">&#x1F3EB;</text>
+        <text id="hs-ny-lbl" x="168" y="153" fill="#333" font-size="6.5" text-anchor="middle" font-family="Arial,sans-serif">&#x2605; CHALLENGE</text>
+      </g>
+      <!-- Town Hall (Main St / Broadway area) -->
+      <circle cx="138" cy="259" r="8" fill="#d4af37" stroke="#8b6914" stroke-width="2"/>
+      <text x="138" y="263" fill="#222" font-size="9" text-anchor="middle" font-family="Arial">&#x1F3DB;</text>
+      <text id="th-lbl" x="138" y="272" fill="#333" font-size="6" text-anchor="middle" font-family="Arial,sans-serif">Need 2,500</text>
+      <!-- Food Market -->
+      <circle cx="196" cy="258" r="7" fill="#66bb44" stroke="#336622" stroke-width="1.5"/>
+      <text x="196" y="262" fill="#fff" font-size="8" text-anchor="middle" font-family="Arial">&#x1F3EA;</text>
+      <!-- Water Plant (near river, south) -->
+      <circle cx="348" cy="308" r="7" fill="#3388cc" stroke="#114488" stroke-width="1.5"/>
+      <text x="348" y="312" fill="#fff" font-size="8" text-anchor="middle" font-family="Arial">&#x1F4A7;</text>
+      <!-- Hospital (upper left) -->
+      <circle cx="60" cy="88" r="7" fill="#cc3333" stroke="#881111" stroke-width="1.5"/>
+      <text x="60" y="92" fill="#fff" font-size="8" text-anchor="middle" font-family="Arial">&#x1F3E5;</text>
+
+  
+    <!-- USA STAGE MAP -->
+    <svg id="map-usa" width="100%" height="100%" viewBox="0 0 520 340" xmlns="http://www.w3.org/2000/svg" style="display:none">
+      <!-- Background -->
+      <rect width="520" height="340" fill="#1a2a4a"/>
+      <!-- Ocean hints -->
+      <rect x="0" y="0" width="60" height="340" fill="#0a1828" opacity="0.5"/>
+      <rect x="460" y="0" width="60" height="340" fill="#0a1828" opacity="0.5"/>
+      <!-- State grid (approximate, recognizable layout) -->
+      <!-- Western states (rectangular) -->
+      <rect x="60" y="45" width="38" height="34" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="79" y="66" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">WA</text>
+      <rect x="60" y="79" width="38" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="79" y="102" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">OR</text>
+      <rect x="55" y="117" width="38" height="85" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="74" y="162" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">CA</text>
+      <rect x="98" y="62" width="36" height="50" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="116" y="90" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">ID</text>
+      <rect x="93" y="112" width="38" height="48" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="112" y="139" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">NV</text>
+      <rect x="93" y="160" width="40" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="113" y="184" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">AZ</text>
+      <rect x="134" y="45" width="52" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="160" y="68" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">MT</text>
+      <rect x="134" y="83" width="48" height="36" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="158" y="104" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">WY</text>
+      <rect x="131" y="119" width="38" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="150" y="143" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">UT</text>
+      <rect x="134" y="119" width="42" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1" x="169"/><rect x="169" y="119" width="42" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="190" y="141" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">CO</text>
+      <rect x="169" y="157" width="42" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="190" y="181" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">NM</text>
+      <!-- Central states -->
+      <rect x="186" y="45" width="42" height="32" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="207" y="65" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">ND</text>
+      <rect x="186" y="77" width="42" height="32" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="207" y="97" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">SD</text>
+      <rect x="186" y="109" width="42" height="30" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="207" y="128" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">NE</text>
+      <rect x="186" y="139" width="44" height="28" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="208" y="157" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">KS</text>
+      <rect x="186" y="167" width="48" height="30" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="210" y="186" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">OK</text>
+      <rect x="170" y="197" width="70" height="60" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="205" y="232" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">TX</text>
+      <rect x="228" y="45" width="40" height="40" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="248" y="68" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">MN</text>
+      <rect x="228" y="85" width="40" height="30" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="248" y="103" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">IA</text>
+      <rect x="228" y="115" width="40" height="36" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="248" y="136" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">MO</text>
+      <rect x="232" y="151" width="38" height="30" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="251" y="169" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">AR</text>
+      <rect x="232" y="181" width="38" height="36" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="251" y="202" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">LA</text>
+      <!-- Great Lakes region -->
+      <rect x="268" y="50" width="30" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="283" y="74" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">WI</text>
+      <rect x="268" y="92" width="28" height="40" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="282" y="114" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">IL</text>
+      <rect x="268" y="148" width="44" height="24" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="290" y="163" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">TN</text>
+      <rect x="268" y="172" width="28" height="36" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="282" y="193" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">MS</text>
+      <rect x="270" y="132" width="44" height="20" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="292" y="145" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">KY</text>
+      <rect x="296" y="50" width="36" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="314" y="74" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">MI</text>
+      <rect x="296" y="92" width="24" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="308" y="114" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">IN</text>
+      <rect x="320" y="78" width="30" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="335" y="100" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">OH</text>
+      <rect x="296" y="162" width="28" height="38" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="310" y="184" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">AL</text>
+      <rect x="312" y="148" width="34" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="329" y="172" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">GA</text>
+      <!-- Eastern states -->
+      <rect x="350" y="38" width="40" height="36" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="370" y="59" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">NY</text>
+      <rect x="350" y="74" width="38" height="28" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="369" y="91" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">PA</text>
+      <rect x="350" y="102" width="24" height="26" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="362" y="118" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">WV</text>
+      <rect x="350" y="128" width="38" height="22" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="369" y="142" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">VA</text>
+      <rect x="312" y="128" width="40" height="22" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="332" y="142" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">NC</text>
+      <rect x="346" y="150" width="30" height="28" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="361" y="167" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">SC</text>
+      <rect x="312" y="190" width="38" height="60" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="331" y="223" fill="#4a8ab0" font-size="5.5" text-anchor="middle" font-family="Arial">FL</text>
+      <!-- Northeast small states -->
+      <rect x="388" y="28" width="18" height="22" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="397" y="42" fill="#4a8ab0" font-size="5" text-anchor="middle" font-family="Arial">ME</text>
+      <rect x="388" y="50" width="12" height="14" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="394" y="61" fill="#4a8ab0" font-size="4.5" text-anchor="middle" font-family="Arial">NH</text>
+      <rect x="388" y="64" width="10" height="12" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="393" y="73" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">VT</text>
+      <rect x="388" y="76" width="22" height="10" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="399" y="84" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">MA</text>
+      <rect x="388" y="86" width="18" height="8" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="397" y="93" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">CT</text>
+      <rect x="388" y="94" width="14" height="8" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="395" y="101" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">RI</text>
+      <rect x="374" y="74" width="14" height="18" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="381" y="86" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">NJ</text>
+      <rect x="374" y="92" width="10" height="10" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="379" y="100" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">DE</text>
+      <rect x="350" y="112" width="28" height="10" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/><text x="364" y="120" fill="#4a8ab0" font-size="4" text-anchor="middle" font-family="Arial">MD</text>
+      <!-- AK and HI insets -->
+      <rect x="60" y="265" width="65" height="52" rx="2" fill="#1a2535" stroke="#2d4a62" stroke-width="1"/>
+      <rect x="65" y="270" width="55" height="42" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/>
+      <text x="92" y="294" fill="#4a8ab0" font-size="6.5" text-anchor="middle" font-family="Arial">AK</text>
+      <text x="92" y="307" fill="#2d5a7a" font-size="5" text-anchor="middle" font-family="Arial">(Alaska)</text>
+      <rect x="135" y="275" width="50" height="25" rx="2" fill="#1a2535" stroke="#2d4a62" stroke-width="1"/>
+      <rect x="138" y="278" width="44" height="19" rx="1" fill="#243448" stroke="#2d5a7a" stroke-width="1"/>
+      <text x="160" y="291" fill="#4a8ab0" font-size="6" text-anchor="middle" font-family="Arial">HI (Hawaii)</text>
+      <!-- USA label -->
+      <text x="260" y="290" fill="#1e3a5a" font-size="32" text-anchor="middle" font-family="Arial" font-weight="bold" opacity="0.3">USA</text>
+      <text x="260" y="20" fill="#2a4a6a" font-size="9" text-anchor="middle" font-family="Arial">UNITED STATES OF AMERICA &mdash; POP. 335,890,000 &mdash; Need 167,945,001 votes</text>
+      <!-- Earn hint -->
+      <text x="260" y="330" fill="#2a5a8a" font-size="8" text-anchor="middle" font-family="Arial">Use the EARN tab to collect GB and votes. Use Shop &amp; Lab to gain more votes.</text>
+    </svg>
+    <!-- Sick overlay -->
+      <g id="nyack-sick" opacity="0">
+        <circle cx="196" cy="258" r="24" fill="rgba(240,180,0,0.12)" stroke="#d29922" stroke-width="1" stroke-dasharray="4,3"/>
+        <circle cx="348" cy="308" r="24" fill="rgba(240,180,0,0.12)" stroke="#d29922" stroke-width="1" stroke-dasharray="4,3"/>
+      </g>
+    </svg>
+
+    <!-- ROCKLAND COUNTY MAP (road-map style) -->
+    <svg id="map-rockland" width="100%" height="100%" viewBox="0 0 440 400" xmlns="http://www.w3.org/2000/svg" style="display:none">
+      <!-- Land -->
+      <rect width="440" height="400" fill="#e8c070"/>
+      <!-- Hudson River (east) -->
+      <polygon points="395,0 440,0 440,400 360,400 352,370 368,340 374,310 358,280 372,250 356,220 370,190 354,160 368,130 352,100 366,70 380,40 395,0" fill="#a8d8f0"/>
+      <!-- Ramapo River / Mahwah area (west water) -->
+      <polygon points="0,340 30,340 35,360 25,380 0,380" fill="#a8d8f0"/>
+
+      <!-- MAJOR ROADS -->
+      <!-- I-287 (E-W highway through center) -->
+      <line x1="30" y1="215" x2="395" y2="215" stroke="#e88020" stroke-width="5"/>
+      <text x="55" y="209" fill="#e88020" font-size="7" font-family="Arial,sans-serif" font-weight="bold">I-287</text>
+      <!-- Route 9W (N-S near river) -->
+      <line x1="340" y1="0" x2="340" y2="400" stroke="#aaa" stroke-width="3"/>
+      <text x="342" y="35" fill="#555" font-size="7" font-family="Arial,sans-serif">Rt. 9W</text>
+      <!-- Palisades Pkwy (N-S center) -->
+      <line x1="210" y1="0" x2="210" y2="380" stroke="#aaa" stroke-width="3"/>
+      <text x="212" y="25" fill="#555" font-size="7" font-family="Arial,sans-serif">Palisades Pkwy</text>
+      <!-- Route 59 (E-W south) -->
+      <line x1="30" y1="310" x2="395" y2="310" stroke="#bbb" stroke-width="3"/>
+      <text x="50" y="305" fill="#666" font-size="7" font-family="Arial,sans-serif">Rt. 59</text>
+      <!-- Route 17 (diagonal NW) -->
+      <line x1="30" y1="215" x2="90" y2="60" stroke="#bbb" stroke-width="2"/>
+      <text x="38" y="100" fill="#666" font-size="6.5" font-family="Arial,sans-serif" transform="rotate(-72 38 100)">Rt. 17</text>
+      <!-- Misc county roads -->
+      <line x1="30" y1="130" x2="340" y2="120" stroke="#ccc" stroke-width="2"/>
+      <line x1="120" y1="0" x2="110" y2="400" stroke="#ccc" stroke-width="2"/>
+      <line x1="270" y1="0" x2="260" y2="400" stroke="#ccc" stroke-width="2"/>
+
+      <!-- TOWNS -->
+      <!-- Nyack (SE, OWNED) -->
+      <g>
+        <circle cx="358" cy="330" r="10" fill="#10b981" stroke="#059669" stroke-width="2"/>
+        <text x="358" y="334" fill="#fff" font-size="9" text-anchor="middle" font-family="Arial">&#x2714;</text>
+        <text x="358" y="348" fill="#059669" font-size="7" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold">NYACK &#x2714;</text>
+      </g>
+      <!-- Haverstraw (NE, near river) -->
+      <g>
+        <circle cx="355" cy="130" r="7" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+        <text x="355" y="126" fill="#555" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Haverstraw</text>
+      </g>
+      <!-- New City (center, teacher) -->
+      <g style="cursor:pointer" onclick="openSchool('rockland')">
+        <circle cx="200" cy="155" r="9" fill="#ffd700" stroke="#b8860b" stroke-width="2"/>
+        <text x="200" y="159" fill="#222" font-size="9" text-anchor="middle" font-family="Arial">&#x1F3EB;</text>
+        <text id="hs-rc-lbl" x="200" y="172" fill="#333" font-size="6.5" text-anchor="middle" font-family="Arial,sans-serif">NEW CITY &#x2605;</text>
+      </g>
+      <!-- Spring Valley -->
+      <g>
+        <circle cx="155" cy="215" r="7" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+        <text x="155" y="211" fill="#555" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Spring Valley</text>
+      </g>
+      <!-- Suffern (SW) -->
+      <g>
+        <circle cx="72" cy="282" r="7" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+        <text x="72" y="278" fill="#555" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Suffern</text>
+      </g>
+      <!-- Pearl River (SE) -->
+      <g>
+        <circle cx="278" cy="328" r="7" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+        <text x="278" y="324" fill="#555" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Pearl River</text>
+      </g>
+      <!-- Nanuet (center-E) -->
+      <g>
+        <circle cx="282" cy="248" r="7" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+        <text x="282" y="244" fill="#555" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Nanuet</text>
+      </g>
+      <!-- Orangeburg (S) -->
+      <g>
+        <circle cx="185" cy="348" r="7" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+        <text x="185" y="344" fill="#555" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Orangeburg</text>
+      </g>
+
+      <!-- PROBLEM MARKERS -->
+      <g id="prob-sv" style="cursor:pointer" onclick="openProblem('sv')"><circle cx="118" cy="196" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="118" y="201" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+      <g id="prob-sf" style="cursor:pointer" onclick="openProblem('sf')"><circle cx="48" cy="266" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="48" y="271" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+      <g id="prob-nc" style="cursor:pointer" onclick="openProblem('nc')"><circle cx="240" cy="150" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="240" y="155" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+      <g id="prob-pr" style="cursor:pointer" onclick="openProblem('pr')"><circle cx="238" cy="308" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="238" y="313" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+      <g id="prob-hv" style="cursor:pointer" onclick="openProblem('hv')"><circle cx="336" cy="110" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="336" y="115" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+      <g id="prob-nm" style="cursor:pointer" onclick="openProblem('nm')"><circle cx="248" cy="228" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="248" y="233" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+      <g id="prob-ob" style="cursor:pointer" onclick="openProblem('ob')"><circle cx="142" cy="335" r="9" fill="#1a1000" stroke="#d29922" stroke-width="1.5"/><text x="142" y="340" fill="#d29922" font-size="11" text-anchor="middle">&#x26A0;</text></g>
+
+      <text x="220" y="14" fill="#666" font-size="9" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold">ROCKLAND COUNTY, NY &mdash; POP. 104,891</text>
+      <text x="395" y="200" fill="#4a88b0" font-size="8" font-family="Arial,sans-serif" text-anchor="middle" transform="rotate(-90 395 200)">Hudson River</text>
+      <rect x="22" y="20" width="140" height="14" fill="rgba(255,255,220,.8)" rx="2"/>
+      <text x="27" y="31" fill="#886600" font-size="7.5" font-family="Arial,sans-serif">&#x26A0; = Chemistry Problem (+100 GB)</text>
+    </svg>
+
+    <!-- NEW YORK STATE MAP (road-map style) -->
+    <svg id="map-nystate" width="100%" height="100%" viewBox="0 0 440 400" xmlns="http://www.w3.org/2000/svg" style="display:none">
+      <rect width="440" height="400" fill="#e8c070"/>
+      <!-- Lake Ontario -->
+      <polygon points="0,0 180,0 175,30 155,50 130,45 100,55 70,50 40,60 10,55 0,40" fill="#a8d8f0"/>
+      <!-- Lake Erie -->
+      <polygon points="0,80 60,75 65,100 55,120 30,130 0,125" fill="#a8d8f0"/>
+      <!-- Atlantic Ocean / Long Island Sound -->
+      <polygon points="320,380 380,340 420,330 440,340 440,400 320,400" fill="#a8d8f0"/>
+      <!-- Hudson River (thin, east) -->
+      <polyline points="360,0 355,50 365,100 358,150 370,200 362,250 375,300 360,350 355,400" stroke="#a8d8f0" stroke-width="6" fill="none"/>
+
+      <!-- State border outline -->
+      <polygon points="60,55 180,30 360,0 380,80 410,160 420,240 400,320 340,380 250,400 150,390 60,370 20,300 0,200 10,120 60,55" fill="none" stroke="#999" stroke-width="2"/>
+
+      <!-- Major Highways -->
+      <line x1="350" y1="380" x2="200" y2="200" stroke="#e88020" stroke-width="3"/><!-- I-87 (NY Thruway N) -->
+      <line x1="200" y1="200" x2="60" y2="100" stroke="#e88020" stroke-width="3"/><!-- I-87 continued -->
+      <line x1="60" y1="100" x2="0" y2="105" stroke="#e88020" stroke-width="3"/><!-- I-90 W -->
+      <line x1="200" y1="200" x2="440" y2="195" stroke="#e88020" stroke-width="2"/><!-- I-90 E -->
+      <line x1="350" y1="380" x2="390" y2="280" stroke="#aaa" stroke-width="2"/><!-- I-95 -->
+      <text x="230" y="195" fill="#e88020" font-size="7" font-family="Arial,sans-serif">I-87/Thruway</text>
+      <text x="80" y="195" fill="#e88020" font-size="7" font-family="Arial,sans-serif">I-90</text>
+
+      <!-- Cities -->
+      <circle cx="352" cy="375" r="8" fill="#cc3333" stroke="#881111" stroke-width="2"/>
+      <text x="352" y="370" fill="#111" font-size="9" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold">NYC</text>
+      <circle cx="218" cy="198" r="7" fill="#cc3333" stroke="#881111" stroke-width="2"/>
+      <text x="218" y="193" fill="#333" font-size="8" text-anchor="middle" font-family="Arial,sans-serif">Albany</text>
+      <circle cx="55" cy="110" r="6" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+      <text x="55" y="105" fill="#333" font-size="8" text-anchor="middle" font-family="Arial,sans-serif">Buffalo</text>
+      <circle cx="130" cy="95" r="5" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+      <text x="130" y="90" fill="#333" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Rochester</text>
+      <circle cx="190" cy="140" r="5" fill="#ddc870" stroke="#997700" stroke-width="1.5"/>
+      <text x="190" y="135" fill="#333" font-size="7" text-anchor="middle" font-family="Arial,sans-serif">Syracuse</text>
+
+      <!-- Rockland County (conquered) -->
+      <circle cx="345" cy="355" r="8" fill="#10b981" stroke="#059669" stroke-width="2"/>
+      <text x="345" y="359" fill="#fff" font-size="7" text-anchor="middle" font-family="Arial">RC &#x2714;</text>
+
+      <text x="220" y="15" fill="#666" font-size="10" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold">NEW YORK STATE &mdash; POP. 20,201,249</text>
+      <rect x="100" y="240" width="240" height="60" fill="rgba(255,255,200,.88)" rx="8" stroke="#ccc" stroke-width="1"/>
+      <text x="220" y="262" fill="#105030" font-size="12" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold">&#x1F5FD; NEW YORK STATE</text>
+      <text x="220" y="279" fill="#666" font-size="9" text-anchor="middle" font-family="Arial,sans-serif">Need 10,100,625 votes to win</text>
+      <text x="220" y="293" fill="#886600" font-size="9" text-anchor="middle" font-family="Arial,sans-serif">Use Shop &amp; Lab to conquer the state!</text>
+    </svg>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="gd-right">
+    <!-- OVERVIEW -->
+    <div id="p-ov">
+      <div class="pov-b">
+        <div class="pov-l">Status</div>
+        <div class="sg">
+          <div class="sc"><span class="sv" id="s-pop" style="color:var(--bluel)">4,999</span><span class="sk">Population</span></div>
+          <div class="sc"><span class="sv" id="s-v" style="color:var(--grn)">0</span><span class="sk">Votes</span></div>
+          <div class="sc"><span class="sv" id="s-sk" style="color:var(--goldl)">0</span><span class="sk">Sick</span></div>
+          <div class="sc"><span class="sv" id="s-gb" style="color:var(--goldl)">750</span><span class="sk">Greenbacks</span></div>
+        </div>
+      </div>
+      <div class="pov-b" style="padding:7px 12px">
+        <div class="pov-l" style="margin:0">Need <span id="ov-need">2,500</span> votes to win</div>
+        <div style="font-size:9px;color:var(--dim);margin-top:3px" id="passives-display"></div>
+      </div>
+      <button id="elect-btn" onclick="runElection()">&#x1F5F3;&#xFE0F; RUN FOR ELECTION &rarr;</button>
+      <div class="pov-l" style="padding:7px 10px 3px">Event Log</div>
+      <div id="p-log">
+        <div class="le a">&#x1F3EB; Click NYACK H.S. on the map &mdash; beat the chemistry teacher for 350 votes!</div>
+        <div class="le i">Keith arrives in Nyack, NY. Population 4,999 &mdash; need 2,500 votes to become mayor.</div>
+      </div>
+    </div>
+    <!-- SHOP -->
+    <div id="p-sh">
+      <div class="st-grid">
+        <div class="stb on" onclick="stab('po')">&#x2620; Poison</div>
+        <div class="stb" onclick="stab('an')">&#x1F48A; Antidote</div>
+        <div class="stb" onclick="stab('pr')">&#x1F4E2; Prop.</div>
+        <div class="stb" onclick="stab('gi')">&#x1F381; Gift</div>
+        <div class="stb" onclick="stab('bu')">&#x1F3D7; Build</div>
+        <div class="stb" onclick="stab('pe')">&#x1F465; People</div>
+        <div class="stb" onclick="stab('di')">&#x1F9A0; Disease</div>
+        <div class="stb" onclick="stab('nu')">&#x2622; Nuclear</div>
+      </div>
+      <div class="sl" id="shop-list"></div>
+    </div>
+    <!-- LAB -->
+    <div id="p-lb">
+      <div class="lh"><div class="lt">&#x2697;&#xFE0F; KEITH'S LAB</div><div class="ls">Select an inventory item to use it</div></div>
+      <div class="is" id="inv-list"><div id="inv-empty" style="font-size:10px;color:var(--muted);text-align:center;padding:20px 10px;line-height:1.7">Inventory empty.<br>Visit the Shop.</div></div>
+      <div id="lm">
+        <button class="lm-x" onclick="closeLM()">&#x2715;</button>
+        <div id="lm-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="gd-foot">
+  <div class="fp-l" id="fp-label">Election Progress</div>
+  <div class="fp-b"><div class="fp-f" id="fp-f" style="width:0%"></div></div>
+  <div id="vote-pct">0 / 2,500</div>
+</div>
+
+<!-- QUIZ MODAL -->
+<div id="qm">
+  <div class="qh"><div class="qt" id="qm-title">&#x1F3EB; CHEMISTRY CHALLENGE</div><button class="qx" onclick="closeQuiz()">&#x2715; Exit</button></div>
+  <div class="qtch"><div class="qti" id="q-icon">&#x1F468;&#x200D;&#x1F3EB;</div><div><div class="qtn" id="q-name">Mr. Henderson</div><div class="qts" id="q-sub">Beat me 7/10 for 350 votes. I score 6/10.</div></div></div>
+  <div class="qpr" id="qpr">
+    <div class="qpr-r"><div class="qpl" id="qpl">Question 1 of 10</div><div class="qps" id="qps">Score: 0</div></div>
+    <div class="qpb"><div class="qpf" id="qpf" style="width:0%"></div></div>
+    <div class="qds" id="qdots"></div>
+  </div>
+  <div class="qqb" id="qqb"><div class="qqn" id="qqn">QUESTION 1</div><div class="qqt" id="qqt">Loading...</div></div>
+  <div class="qos" id="qopts"></div>
+  <div class="qfb" id="qfb"></div>
+  <button class="qnx" id="qnxt" onclick="nextQ()">Next &rarr;</button>
+  <div class="qres" id="qres">
+    <div class="qri" id="qri">&#x1F3C6;</div><div class="qrt" id="qrt">Win!</div>
+    <div class="qrs" id="qrs">7/10</div><div class="qrsub" id="qrsub"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button class="qrb" id="qr-close" onclick="closeQuiz()">Close</button>
+      <button class="qrb" id="qr-retry" onclick="startQuiz()" style="background:var(--b2);color:var(--text);border:1px solid var(--brd);display:none">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEM MODAL -->
+<div id="pm">
+  <div style="max-width:400px;width:100%;background:var(--b2);border:1px solid var(--brd);border-radius:12px;padding:20px;position:relative">
+    <button onclick="closePM()" style="position:absolute;top:10px;right:12px;background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer">&#x2715;</button>
+    <div id="pm-loc" style="font-size:10px;color:var(--amb);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase"></div>
+    <div id="pm-title" style="font-size:14px;font-weight:700;color:var(--goldl);margin-bottom:8px"></div>
+    <div id="pm-desc" style="font-size:11px;color:var(--dim);line-height:1.6;margin-bottom:14px"></div>
+    <div id="pm-q" style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px;line-height:1.6"></div>
+    <div id="pm-opts" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="pm-result" style="display:none;margin-top:12px;padding:10px;border-radius:8px;font-size:11px;line-height:1.6;font-weight:700"></div>
+  </div>
+</div>
+
+<!-- VICTORY OVERLAY -->
+<div id="vo">
+  <div id="vo-icon">&#x1F389;</div>
+  <div id="vo-title">VICTORY!</div>
+  <div id="vo-sub">Keith has won.</div>
+  <div id="vo-gb"></div>
+  <button id="vo-btn" onclick="doTransition()">Continue &rarr;</button>
+</div>
+
+<script>
+const S={
+  gb:750,pop:4999,votes:0,sick:0,dead:0,stage:'nyack',
+  inv:{},pending:{},
+  quizWon:{nyack:false,rockland:false},
+  probSolved:{},
+  shopTab:'po',_nextStage:null,
+  ownsNyack:false,ownsCounty:false,ownsNY:false,ownsCountry:false,ownsIran:false,
+  secretaryLevel:0,hasTreasurer:false,hasNuclearPlant:false,hasIronDome:false
+};
+function req(){return Math.floor(S.pop/2)+1;}
+function healthy(){return Math.max(0,S.pop-S.votes-S.sick-S.dead);}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function fmt(n){return Number(n).toLocaleString();}
+function calcCost(base){
+  let c=base;
+  if(S.secretaryLevel>0)c=Math.floor(c*(1-0.01*S.secretaryLevel));
+  if(S.hasNuclearPlant)c=Math.floor(c*0.8);
+  return Math.max(1,c);
+}
+function spendGB(amount){
+  S.gb-=amount;
+  if(S.hasTreasurer)S.gb+=Math.floor(amount*0.1);
+}
+
+// Quiz questions (pool of 15)
+const QQ=[
+  {q:"Which element has the highest electronegativity?",o:["Oxygen","Nitrogen","Fluorine","Chlorine"],a:2,e:"Fluorine — EN 3.98. The electron gangsta of the periodic table."},
+  {q:"What is the atomic number of Carbon?",o:["12","6","8","14"],a:1,e:"Atomic number = proton count. Carbon has 6."},
+  {q:"What type of bond forms when two nonmetals share electrons equally?",o:["Ionic","Metallic","Nonpolar covalent","Polar covalent"],a:2,e:"Nonpolar covalent — equal electronegativity, equal sharing."},
+  {q:"What is the pH of a perfectly neutral solution at 25°C?",o:["0","14","7","5"],a:2,e:"pH 7 — equal H⁺ and OH⁻ concentrations."},
+  {q:"The symbol Au stands for which element?",o:["Silver","Aluminum","Argon","Gold"],a:3,e:"From Latin 'Aurum'. Gold."},
+  {q:"How many valence electrons does Oxygen have?",o:["4","6","8","2"],a:1,e:"6 valence electrons — that's why Oxygen is an electron gangsta."},
+  {q:"What is Avogadro's number?",o:["6.02 × 10²³","3.14 × 10⁸","9.81 × 10²","1.38 × 10⁻²³"],a:0,e:"6.02 × 10²³ particles per mole."},
+  {q:"What is the molar mass of water (H₂O)?",o:["16 g/mol","20 g/mol","18 g/mol","12 g/mol"],a:2,e:"(2×1) + 16 = 18 g/mol."},
+  {q:"Which of these is NOT a noble gas?",o:["Neon","Argon","Chlorine","Krypton"],a:2,e:"Chlorine is a halogen — electron gangsta, EN 3.16."},
+  {q:"What happens to reaction rate when temperature increases?",o:["Decreases","Stays same","Increases","Unpredictable"],a:2,e:"More kinetic energy = more successful collisions = faster reaction."},
+  {q:"What is the chemical formula for rust?",o:["Fe₂O₃","FeO","FeCl₃","FeSO₄"],a:0,e:"Iron(III) oxide — Fe₂O₃."},
+  {q:"What type of reaction occurs when acid meets base?",o:["Combustion","Neutralization","Decomposition","Substitution"],a:1,e:"Neutralization: acid + base → salt + water."},
+  {q:"What is the molar mass of CO₂? (C=12, O=16)",o:["28 g/mol","32 g/mol","44 g/mol","56 g/mol"],a:2,e:"12 + (2×16) = 44 g/mol."},
+  {q:"Which type of radiation has no charge and no mass?",o:["Alpha","Beta","Gamma","Neutron"],a:2,e:"Gamma radiation — high-energy electromagnetic waves."},
+  {q:"Elements in the same group share what property?",o:["Same atomic mass","Same protons","Same valence electrons","Same period"],a:2,e:"Same group = same valence electrons = similar chemistry."},
+];
+
+// Chemistry problems
+const PROBS={
+  sv:{id:'sv',loc:'Spring Valley',icon:'💧',title:'Water Supply Crisis',
+    desc:'The Spring Valley reservoir reads pH 4.2 — dangerously acidic. Keith is called in.',
+    q:'Which compound should Keith add to raise the reservoir to neutral pH 7?',
+    o:['HCl — hydrochloric acid','NaOH — sodium hydroxide','NaCl — table salt','H₂SO₄ — sulfuric acid'],a:1,
+    ex:'NaOH is a strong base. It neutralizes the acid: NaOH + HCl → NaCl + H₂O, raising pH toward 7.'},
+  sf:{id:'sf',loc:'Suffern',icon:'💨',title:'Industrial Gas Leak',
+    desc:'A colorless, odorless gas is leaking from a Suffern factory. Workers are collapsing.',
+    q:'This gas binds hemoglobin 240x more strongly than oxygen. What is it?',
+    o:['CO₂ — carbon dioxide','N₂ — nitrogen','CO — carbon monoxide','H₂S — hydrogen sulfide'],a:2,
+    ex:'Carbon monoxide (CO). Hb·O₂ + CO → Hb·CO + O₂. The displaced oxygen cannot return.'},
+  nc:{id:'nc',loc:'New City',icon:'🧪',title:'Lab Accident at RCC',
+    desc:'A student mixed HCl and NaOH. The reaction produced water and a white crystalline solid.',
+    q:'HCl + NaOH → H₂O + ? What is the solid?',
+    o:['NaOH','NaHCO₃','NaCl','Na₂O'],a:2,
+    ex:'NaCl — table salt! Acid + base neutralization always produces water and a salt.'},
+  pr:{id:'pr',loc:'Pearl River',icon:'⚗️',title:'Chemical Spill',
+    desc:'A drum labeled 0.5 mol/L holds 2 liters. How much chemical spilled?',
+    q:'How many moles of chemical were in the drum?',
+    o:['0.25 moles','1 mole','2.5 moles','4 moles'],a:1,
+    ex:'Moles = concentration × volume = 0.5 mol/L × 2 L = 1 mole.'},
+  hv:{id:'hv',loc:'Haverstraw',icon:'🏭',title:'Factory Stoichiometry',
+    desc:'Fe₂O₃ + 3CO → 2Fe + 3CO₂. How much CO for 4 moles of Fe₂O₃?',
+    q:'How many moles of CO are needed to process 4 moles of Fe₂O₃?',
+    o:['3 moles','6 moles','8 moles','12 moles'],a:3,
+    ex:'1 mol Fe₂O₃ needs 3 mol CO. So 4 × 3 = 12 moles of CO.'},
+  nm:{id:'nm',loc:'Nanuet',icon:'🏥',title:'Hospital Dosage',
+    desc:'A patient needs 2 mg/kg dose and weighs 70 kg.',
+    q:'What is the correct dose?',
+    o:['35 mg','72 mg','140 mg','200 mg'],a:2,
+    ex:'Dose = 2 mg/kg × 70 kg = 140 mg.'},
+  ob:{id:'ob',loc:'Orangeburg',icon:'🌾',title:'Farm Fertilizer',
+    desc:'What is the molar mass of ammonium nitrate NH₄NO₃? (N=14, H=1, O=16)',
+    q:'What is the molar mass of NH₄NO₃?',
+    o:['64 g/mol','80 g/mol','94 g/mol','52 g/mol'],a:1,
+    ex:'N=14, H×4=4, N=14, O×3=48. Total = 14+4+14+48 = 80 g/mol.'},
+};
+
+// ITEM DATA
+const POISONS=[
+  {id:'lead',name:'Lead (Pb)',icon:'🔩',cost:300,range:[1000,1500],lethal:false,
+   deq:['Pb²⁺  +  enzyme·SH  →  [Pb·S·enzyme]⁺  +  H⁺','(enzyme inhibition — reversible with chelation)'],
+   aeq:['Pb²⁺  +  EDTA⁴⁻  →  [Pb(EDTA)]²⁻  ↓','(C₁₀H₁₆N₂O₈ — renally excreted)'],aid:'lead_a',lock:null},
+  {id:'mercury',name:'Mercury (Hg)',icon:'🌡️',cost:1000,range:[2500,5000],lethal:false,
+   deq:['Hg²⁺  +  2 R·SH  →  Hg(SR)₂  +  2H⁺','(thiol binding — neurological disruption)'],
+   aeq:['Hg²⁺  +  EDTA⁴⁻  →  [Hg(EDTA)]²⁻  ↓','(C₁₀H₁₆N₂O₈ — chelation therapy)'],aid:'merc_a',lock:null},
+  {id:'arsenic',name:'Arsenic (As)',icon:'💀',cost:1500,range:[5000,10000],lethal:false,
+   deq:['As³⁺  +  3 R·SH  →  As(SR)₃  +  3H⁺','(lipoic acid enzyme disruption)'],
+   aeq:['As³⁺  +  DMPS  →  [As·DMPS]  complex  ↓','(C₃H₈OS₂ — dimercapto chelation)'],aid:'ars_a',lock:null},
+  {id:'co',name:'Carbon Monoxide',icon:'💨',cost:3000,range:[10000,20000],lethal:true,
+   deq:['Hb·O₂  +  CO  →  Hb·CO  +  O₂','(Kco/Ko₂ = 240 — tissue hypoxia)'],lock:null},
+  {id:'cyanide',name:'Cyanide (CN⁻)',icon:'⚗️',cost:4000,range:[30000,45000],lethal:true,
+   deq:['CN⁻  +  Fe³⁺(Cyt c oxidase)  →  [Fe·CN]³⁺','(electron transport chain blocked)'],lock:null},
+  {id:'ricin',name:'Ricin',icon:'🌿',cost:5000,range:[50000,100000],lethal:true,
+   deq:['Ricin A-chain  +  28S rRNA  →  N-glycoside cleavage','depurination → ribosome inactivation → apoptosis'],
+   lock:'ny',ld:'Own New York State first'},
+  {id:'polonium',name:'Polonium-210',icon:'☢️',cost:10000,pct:50,lethal:true,
+   deq:['²¹⁰Po  →  ²⁰⁶Pb  +  α (5.30 MeV)','ionizing radiation → DNA strand breaks → fatal ARS'],
+   lock:'country',ld:'Own a country first'},
+];
+const ANTIDOTES=[
+  {id:'lead_a',name:'EDTA — Lead Antidote',icon:'💊',cost:75,formula:'C₁₀H₁₆N₂O₈',fp:'lead'},
+  {id:'merc_a',name:'EDTA — Mercury Antidote',icon:'💊',cost:250,formula:'C₁₀H₁₆N₂O₈',fp:'mercury'},
+  {id:'ars_a',name:'DMPS — Arsenic Antidote',icon:'💊',cost:500,formula:'C₃H₈OS₂',fp:'arsenic'},
+  {id:'flu_v',name:'Flu Vaccine',icon:'💉',cost:5000,formula:'Inactivated influenza',fp:'flu',lock:'ny',ld:'Own New York first'},
+  {id:'covid_v',name:'Covid Vaccine',icon:'💉',cost:20000,formula:'mRNA vaccine',fp:'covid',lock:'ny',ld:'Own New York first'},
+];
+const PROPAGANDA=[
+  {id:'poster',name:'Posters',icon:'📌',cost:20,range:[25,50],msg:(n)=>'Keith for Mayor flyers went up everywhere. '+fmt(n)+' residents read them.'},
+  {id:'local',name:'Local Newspaper',icon:'📰',cost:80,range:[100,200],msg:(n)=>'The local paper ran a glowing editorial. '+fmt(n)+' readers are talking about Keith.'},
+  {id:'major',name:'National Newspaper',icon:'🗞️',cost:750,range:[1000,2000],msg:(n)=>'A major outlet featured Keith. '+fmt(n)+' people took notice.'},
+  {id:'social',name:'Social Media Post',icon:'📱',cost:2000,viral:true,msg:(n,p)=>'Keith\'s post reached '+p+'% of the population — '+fmt(n)+' people. '+(p>50?'VIRAL! 🔥':p>20?'Strong reach 📈':'Modest reach.')},
+];
+const GIFTS=[
+  {id:'food',name:'Free Food',icon:'🍔',pp:2,perP:true,msg:(n)=>'Keith fed '+fmt(n)+' people. Full bellies, loyal hearts.'},
+  {id:'class',name:'Chemistry Class',icon:'🔬',cost:40,perC:true,spc:30,msg:(n,c)=>c+' class'+(c>1?'es':'')+' taught — '+fmt(n)+' students now loyal.'},
+];
+const BUILDINGS=[
+  {id:'house',name:'House',icon:'🏠',cost:200,vb:5,instant:true,desc:'A personal residence. Shows community investment. +5 votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'apartments',name:'Apartment Complex',icon:'🏢',cost:1500,vb:200,instant:true,desc:'20-unit complex. Tenants vote for their landlord. +200 votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'restaurant',name:'Restaurant',icon:'🍽️',cost:2500,range:[150,350],instant:true,desc:"Keith's Kitchen. People dine and support the cause. +150–350 votes.",lock:'nyack',ld:'Win Nyack first'},
+  {id:'mall',name:'Shopping Mall',icon:'🛒',cost:25000,range:[15000,20000],instant:true,desc:'Hundreds of employees. Their families vote Keith. +15,000–20,000 votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'factory',name:'Factory',icon:'🏭',cost:50000,range:[30000,50000],instant:true,risk:true,desc:'500 employees. ⚠️ 5% chance of nuclear waste incident (-5,000 votes). +30,000–50,000 votes.',lock:'nyack',ld:'Win Nyack first'},
+];
+const PEOPLE=[
+  {id:'worker',name:'Office Worker',icon:'💼',cost:80,range:[100,300],instant:true,desc:'A loyal employee who rallies their network for Keith. +100–300 votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'pastor',name:'Pastor',icon:'✝️',cost:500,pct:[10,20],instant:true,desc:'Teaches chemistry to the Christian congregation. +10–20% of needed votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'rabbi',name:'Rabbi',icon:'✡️',cost:500,pct:[10,20],instant:true,desc:'Teaches chemistry to the Jewish community. +10–20% of needed votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'imam',name:'Imam',icon:'☪️',cost:2000,pct:[20,30],instant:true,desc:'Teaches chemistry to the Muslim population. +20–30% of needed votes.',lock:'iran',ld:'Own Iran first'},
+  {id:'mayor2',name:'Town Mayor',icon:'🏛️',cost:750,vb:2500,instant:true,desc:'A local mayor endorses Keith and delivers their constituents. +2,500 votes.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'secretary',name:'Secretary',icon:'📋',cost:300,passive:'discount',instant:true,desc:'Reduces cost of every item by 1%. Upgradable — each level adds 1% more discount.',lock:'nyack',ld:'Win Nyack first'},
+  {id:'treasurer',name:'Treasurer',icon:'💰',cost:500,passive:'cashback',instant:true,desc:'Returns 1 GB for every 10 spent (10% cashback on all purchases). One-time hire.',lock:'nyack',ld:'Win Nyack first'},
+];
+const DISEASES=[
+  {id:'flu',name:'Flu Virus',icon:'🤧',cost:8000,range:[100000,200000],lethal:false,
+   deq:['Influenza A: HA + sialic acid → endocytosis → RNA replication','Cytokine storm → systemic inflammation'],
+   aeq:['Influenza vaccine: HA antigen → B cell activation → IgG antibody production','(Annual formulation — seasonal protection)'],
+   aid:'flu_v',lock:'ny',ld:'Own New York State first'},
+  {id:'covid',name:'Covid-19',icon:'🦠',cost:35000,range:[1000000,2000000],lethal:false,
+   deq:['SARS-CoV-2: spike protein + ACE2 receptor → membrane fusion → RNA release','Cytokine storm → ARDS → multi-organ failure'],
+   aeq:['mRNA vaccine: LNP delivery → spike protein expression → T/B cell response','(Neutralizing antibodies — variant coverage)'],
+   aid:'covid_v',lock:'ny',ld:'Own New York State first'},
+  {id:'hanta',name:'Hantavirus',icon:'🐀',cost:80000,range:[5000000,10000000],lethal:true,
+   deq:['Hantavirus + β3 integrin → endothelial infection → capillary leak syndrome','Hantavirus Pulmonary Syndrome → respiratory failure'],
+   lock:'ny',ld:'Own New York State first'},
+  {id:'plague',name:'Black Plague',icon:'☠️',cost:150000,range:[10000000,20000000],lethal:true,
+   deq:['Y. pestis + macrophage → lymph node → bubonic/pneumonic spread','Septicemia → DIC → multi-organ failure → death'],
+   lock:'ny',ld:'Own New York State first'},
+];
+const NUCLEAR=[
+  {id:'nuke_plant',name:'Nuclear Plant',icon:'⚡',cost:500000,passive:'cheapAll',instant:true,desc:'Generates massive clean energy. Makes ALL items 20% cheaper permanently.',lock:'country',ld:'Own a country first'},
+  {id:'h_bomb',name:'Hydrogen Bomb',icon:'💥',cost:1000000,desc:'Wipes out an entire city. Ultimate weapon of mass destruction.',lock:'country',ld:'Own a country first'},
+  {id:'iron_dome',name:'Iron Dome',icon:'🛡️',cost:750000,passive:'defense',instant:true,desc:'Intercepts and destroys incoming hydrogen bombs. Permanent defensive shield.',lock:'country',ld:'Own a country first'},
+];
+function allItems(){return[...POISONS,...ANTIDOTES,...PROPAGANDA,...GIFTS,...BUILDINGS,...PEOPLE,...DISEASES,...NUCLEAR];}
+function fi(id){return allItems().find(i=>i.id===id);}
+function isLocked(item){
+  if(!item.lock)return false;
+  if(item.lock==='nyack'&&!S.ownsNyack)return true;
+  if(item.lock==='ny'&&!S.ownsNY)return true;
+  if(item.lock==='country'&&!S.ownsCountry)return true;
+  if(item.lock==='iran'&&!S.ownsIran)return true;
+  return false;
+}
+
+// PANELS
+function setPanel(p){
+  ['ov','sh','lb'].forEach(x=>{document.getElementById('p-'+x).style.display=x===p?'flex':'none';});
+  document.querySelectorAll('.nb').forEach((b,i)=>{b.classList.toggle('on',['ov','sh','lb'][i]===p);});
+  if(p==='sh')renderShop();if(p==='lb')renderInv();
+}
+function stab(t){
+  S.shopTab=t;
+  const tabs=['po','an','pr','gi','bu','pe','di','nu'];
+  document.querySelectorAll('.stb').forEach((e,i)=>{e.classList.toggle('on',tabs[i]===t);});
+  renderShop();
+}
+function renderShop(){
+  const el=document.getElementById('shop-list');el.innerHTML='';
+  const map={po:POISONS,an:ANTIDOTES,pr:PROPAGANDA,gi:GIFTS,bu:BUILDINGS,pe:PEOPLE,di:DISEASES,nu:NUCLEAR};
+  const items=map[S.shopTab]||[];
+  if((S.shopTab==='bu'||S.shopTab==='pe')&&!S.ownsNyack){
+    el.innerHTML='<div style="font-size:10px;color:var(--dim);text-align:center;padding:20px;line-height:1.7">&#x1F512; Win Nyack mayoral election<br>to unlock Buildings and People.</div>';return;
+  }
+  if(S.shopTab==='di'&&!S.ownsNY){
+    el.innerHTML='<div style="font-size:10px;color:var(--dim);text-align:center;padding:20px;line-height:1.7">&#x1F512; Own New York State<br>to unlock Diseases.</div>';return;
+  }
+  if(S.shopTab==='nu'&&!S.ownsCountry){
+    el.innerHTML='<div style="font-size:10px;color:var(--dim);text-align:center;padding:20px;line-height:1.7">&#x1F512; Own a Country<br>to unlock Nuclear items.</div>';return;
+  }
+  items.forEach(item=>{
+    const lk=isLocked(item);
+    const cost=calcCost(item.cost||item.pp||0);
+    const br=S.gb<cost&&!item.perP&&!item.perC&&!item.instant;
+    const d=document.createElement('div');d.className='si'+(lk?' lk':'');
+    let bg='';
+    if(item.range&&!item.pct)bg+='<span class="bg bgr">'+fmt(item.range[0])+'&ndash;'+fmt(item.range[1])+' people</span>';
+    if(item.pct)bg+='<span class="bg bgg">+'+item.pct[0]+'&ndash;'+item.pct[1]+'% of needed votes</span>';
+    if(item.vb)bg+='<span class="bg bgg">+'+fmt(item.vb)+' votes</span>';
+    if(item.pct50)bg+='<span class="bg bgr">&#x2622; 50% of pop</span>';
+    if(item.formula)bg+='<span class="bg bgb">'+item.formula+'</span>';
+    if(item.lethal===false&&(POISONS.find(x=>x.id===item.id)||DISEASES.find(x=>x.id===item.id)))bg+='<span class="bg bgg">&#x1F489; antidote available</span>';
+    if(item.lethal===true)bg+='<span class="bg bgr">&#x1F480; lethal</span>';
+    if(item.passive==='discount')bg+='<span class="bg bgy">-1% all costs/level</span>';
+    if(item.passive==='cashback')bg+='<span class="bg bgy">+10% GB back</span>';
+    if(item.passive==='cheapAll')bg+='<span class="bg bgy">-20% everything</span>';
+    if(item.risk)bg+='<span class="bg bgr">5% nuclear waste risk</span>';
+    const showCost=item.perP?'2 GB/person':item.perC?'40 GB/class':item.id==='secretary'?fmt(calcCost(300*(S.secretaryLevel+1)))+' GB':fmt(cost)+' GB';
+    const alreadyHas=item.id==='treasurer'&&S.hasTreasurer;
+    const alreadyDone=item.id==='nuke_plant'&&S.hasNuclearPlant||item.id==='iron_dome'&&S.hasIronDome;
+    let btnTxt=lk?'&#x1F512; '+item.ld:alreadyHas?'Already hired':alreadyDone?'Already built':S.gb<(item.perP?1:item.perC?40:cost)&&!item.perP&&!item.perC?'Not enough GB':'Buy &mdash; '+showCost;
+    const disabled=lk||alreadyHas||alreadyDone||(S.gb<cost&&!item.perP&&!item.perC);
+    const btnClass='si-by'+(item.instant&&!disabled?' instant':'');
+    d.innerHTML=(lk?'<div class="lkt">LOCKED</div>':'')+'<div class="si-r"><div class="si-ic">'+item.icon+'</div><div><div class="si-nm">'+item.name+(item.id==='secretary'&&S.secretaryLevel>0?' (Lv.'+S.secretaryLevel+')':'')+'</div><div class="si-ds">'+(item.desc||'')+'</div></div></div>'+(bg?'<div class="si-bg">'+bg+'</div>':'')+'<button class="'+btnClass+'" '+(disabled?'disabled':'')+' onclick="buyI(\''+item.id+'\')">'+btnTxt+'</button>';
+    el.appendChild(d);
+  });
+}
+function renderInv(){
+  const el=document.getElementById('inv-list'),em=document.getElementById('inv-empty');
+  const keys=Object.keys(S.inv).filter(k=>S.inv[k]>0);
+  if(!keys.length){if(em)em.style.display='block';el.querySelectorAll('.ie').forEach(e=>e.remove());return;}
+  if(em)em.style.display='none';el.querySelectorAll('.ie').forEach(e=>e.remove());
+  keys.forEach(id=>{
+    const qty=S.inv[id];const item=fi(id);if(!item||qty<1)return;
+    const d=document.createElement('div');d.className='ie';
+    d.innerHTML='<div class="ie-r"><div class="ie-ic">'+item.icon+'</div><div class="ie-nm">'+item.name+'</div><div class="ie-q">&times;'+qty+'</div></div>';
+    d.onclick=()=>openLab(id);el.appendChild(d);
+  });
+}
+
+// BUY
+function buyI(id){
+  const it=fi(id);if(!it)return;
+  // Handle instant-effect items (buildings, people, nuclear)
+  if(it.instant){
+    const cost=it.id==='secretary'?calcCost(300*(S.secretaryLevel+1)):calcCost(it.cost||0);
+    if(S.gb<cost){log('Not enough Greenbacks!','b');return;}
+    spendGB(cost);
+    applyInstant(it);
+    updateUI();renderShop();return;
+  }
+  if(it.perP){
+    const n=parseInt(prompt('Feed how many people? (2 GB each)','50')||'0');
+    if(!n||n<1)return;const c=n*2;if(S.gb<c){log('Not enough GB!','b');return;}
+    spendGB(c);S.inv[id]=(S.inv[id]||0)+n;log('Bought food for '+fmt(n)+' people ('+c+' GB)','g');
+  }else if(it.perC){
+    const c2=parseInt(prompt('How many classes? (40 GB each)','1')||'0');
+    if(!c2||c2<1)return;const cc=calcCost(40)*c2;if(S.gb<cc){log('Not enough GB!','b');return;}
+    spendGB(cc);S.inv[id]=(S.inv[id]||0)+c2;log('Bought '+c2+' chemistry class'+(c2>1?'es':'')+' ('+cc+' GB)','g');
+  }else{
+    const cost=calcCost(it.cost);if(S.gb<cost){log('Not enough GB!','b');return;}
+    spendGB(cost);S.inv[id]=(S.inv[id]||0)+1;log('Purchased '+it.name+' for '+fmt(cost)+' GB','g');
+  }
+  updateUI();renderShop();renderInv();
+}
+function applyInstant(it){
+  let votes=0,msg='';
+  if(it.id==='secretary'){
+    S.secretaryLevel++;
+    msg='Secretary hired (Level '+S.secretaryLevel+'). All costs now -'+S.secretaryLevel+'%.';
+    log(msg,'g');updatePassivesDisplay();return;
+  }
+  if(it.id==='treasurer'){
+    S.hasTreasurer=true;
+    msg='Treasurer hired. 10% cashback on all future purchases!';
+    log(msg,'g');updatePassivesDisplay();return;
+  }
+  if(it.id==='nuke_plant'){
+    S.hasNuclearPlant=true;
+    msg='Nuclear Plant built. All items now 20% cheaper!';
+    log(msg,'g');updatePassivesDisplay();return;
+  }
+  if(it.id==='iron_dome'){
+    S.hasIronDome=true;
+    msg='Iron Dome active. Incoming hydrogen bombs will be intercepted.';
+    log(msg,'g');return;
+  }
+  if(it.id==='h_bomb'){
+    const killed=Math.floor(S.pop*rand(40,90)/100);
+    S.dead+=killed;S.pop-=killed;
+    msg='Hydrogen bomb detonated. '+fmt(killed)+' perished. Population: '+fmt(S.pop)+'. New threshold: '+fmt(req())+'.';
+    log(msg,'b');updateUI();checkWin();return;
+  }
+  // Passive pct people
+  if(it.pct){
+    const pct=rand(it.pct[0],it.pct[1]);
+    votes=Math.floor(req()*pct/100);
+    msg=it.icon+' '+it.name+' secured '+pct+'% of needed votes: +'+fmt(votes)+' votes!';
+  } else if(it.vb){
+    votes=it.vb;
+    msg=it.icon+' '+it.name+' acquired! +'+fmt(votes)+' votes.';
+  } else if(it.range){
+    if(it.risk&&Math.random()<0.05){
+      votes=-5000;
+      msg='🔥 NUCLEAR WASTE INCIDENT at the factory! -5,000 votes due to public outrage.';
+      log(msg,'b');S.votes=Math.max(0,S.votes+votes);updateUI();return;
+    }
+    votes=rand(...it.range);
+    msg=it.icon+' '+it.name+' built! +'+fmt(votes)+' votes.';
+  }
+  S.votes+=votes;log(msg,'g');checkWin();
+}
+function updatePassivesDisplay(){
+  const parts=[];
+  if(S.secretaryLevel>0)parts.push('-'+S.secretaryLevel+'% all costs');
+  if(S.hasTreasurer)parts.push('+10% GB back');
+  if(S.hasNuclearPlant)parts.push('-20% (nuclear)');
+  document.getElementById('passives-display').textContent=parts.length?'Active: '+parts.join(' | '):'';
+}
+
+// LAB
+function openLab(id){
+  const it=fi(id);if(!it)return;
+  const modal=document.getElementById('lm');const body=document.getElementById('lm-body');
+  modal.classList.add('on');
+  let h='<div class="lm-t">'+it.icon+' '+it.name+'</div>';
+  const p=[...POISONS,...DISEASES].find(x=>x.id===id);
+  if(p){
+    h+='<div class="cb"><div class="el">Disease Mechanism</div><div class="eq">'+p.deq[0]+'</div><div style="font-size:9px;color:#4a7a4a;margin-bottom:8px">'+(p.deq[1]||'')+'</div>'+(p.aeq?'<div class="el">Antidote/Vaccine Reaction</div><div class="eq">'+p.aeq[0]+'</div><div style="font-size:9px;color:#4a7a4a">'+(p.aeq[1]||'')+'</div>':'<div class="el" style="color:#7a4a4a">&#x26A0; No antidote exists</div>')+'</div>';
+    h+='<div style="font-size:10px;color:'+(p.lethal?'#f87171':'var(--dim)')+';margin-bottom:6px">'+(p.lethal?'&#x26A0; Lethal &mdash; reduces population and vote threshold.':'Sickens people. Cure with antidote/vaccine to gain votes.')+'</div>';
+    h+='<div class="la"><button class="lb2" onclick="useP(\''+id+'\',\'water\')">&#x1F4A7; Poison Water Supply</button><button class="lb2" onclick="useP(\''+id+'\',\'food\')">&#x1F969; Contaminate Food Supply</button></div>';
+  }
+  const an=[...ANTIDOTES].find(x=>x.id===id);
+  if(an){
+    const fp=[...POISONS,...DISEASES].find(x=>x.id===an.fp);
+    const pend=S.pending[an.fp]||0;
+    h+='<div class="cb"><div class="el">Formula</div><div class="eq">'+(an.formula||an.id)+'</div>'+(fp&&fp.aeq?'<div class="el" style="margin-top:6px">Treatment Reaction</div><div class="eq">'+fp.aeq[0]+'</div><div style="font-size:9px;color:#4a7a4a">'+(fp.aeq[1]||'')+'</div>':'')+'</div>';
+    h+='<div style="font-size:10px;color:var(--dim);margin-bottom:8px">'+(pend>0?fmt(pend)+' people sick from '+(fp?fp.name:'this agent')+'.':"No patients awaiting this treatment.")+'</div>';
+    h+='<div class="la"><button class="lb2" onclick="useA(\''+id+'\')" '+(pend<1?'disabled':'')+'>&#x1F489; Treat '+fmt(pend)+' patients &rarr; +'+fmt(pend)+' votes</button></div>';
+  }
+  const pr=PROPAGANDA.find(x=>x.id===id);
+  if(pr){h+='<div style="font-size:10px;color:var(--dim);margin-bottom:10px">Deploy to influence residents.</div><div class="la"><button class="lb2" onclick="usePr(\''+id+'\')">&#x1F4E3; Deploy '+it.name+'</button></div>';}
+  const gi=GIFTS.find(x=>x.id===id);
+  if(gi){const qty=S.inv[id]||0;const ppl=gi.perP?qty:(gi.spc||30)*qty;h+='<div style="font-size:10px;color:var(--dim);margin-bottom:10px">'+(gi.perP?fmt(qty)+' meal units':qty+' class'+(qty>1?'es':''))+' ready &mdash; reaches '+fmt(ppl)+' people.</div><div class="la"><button class="lb2" onclick="useG(\''+id+'\')">&#x1F381; Deploy '+it.name+'</button></div>';}
+  h+='<div class="lr" id="lr"></div>';
+  body.innerHTML=h;
+}
+function closeLM(){document.getElementById('lm').classList.remove('on');}
+function showLR(msg,t){const e=document.getElementById('lr');if(e){e.style.display='block';e.style.borderColor=t==='g'?'var(--grn)':t==='b'?'var(--red)':'var(--goldl)';e.style.color=t==='g'?'var(--grnl)':t==='b'?'var(--redl)':'var(--goldl)';e.textContent=msg;}}
+
+// USE ITEMS
+function useP(id,target){
+  const p=[...POISONS,...DISEASES].find(x=>x.id===id);if(!p||(S.inv[id]||0)<1)return;
+  S.inv[id]--;
+  const h=healthy();if(h<=0){showLR('No healthy people left.','b');return;}
+  const aff=p.pct?Math.floor(S.pop*.5):Math.min(rand(...p.range),h);
+  const sup=target==='water'?'water supply':'food supply';
+  if(p.lethal){
+    const kl=Math.min(aff,h);S.dead+=kl;S.pop-=kl;
+    const m=p.name+' deployed in '+sup+'. '+fmt(kl)+' died. Population: '+fmt(S.pop)+'. Threshold: '+fmt(req())+'.';
+    log(m,'b');showLR(m,'b');
+  }else{
+    const sk=Math.min(aff,h);S.sick+=sk;S.pending[id]=(S.pending[id]||0)+sk;
+    const m=p.name+' in '+sup+'. '+fmt(sk)+' now sick — use antidote/vaccine to convert them to votes.';
+    log(m,'w');showLR(m,'w');
+    if(S.stage==='nyack')document.getElementById('nyack-sick')?.setAttribute('opacity','1');
+  }
+  updateUI();renderInv();
+}
+function useA(id){
+  const an=ANTIDOTES.find(x=>x.id===id);if(!an||(S.inv[id]||0)<1)return;
+  const pend=S.pending[an.fp]||0;if(pend<1){showLR('No sick patients.','b');return;}
+  S.inv[id]--;S.pending[an.fp]=0;S.sick-=pend;S.votes+=pend;
+  const m=fmt(pend)+' patients treated and cured! All now voting for Keith. +'+fmt(pend)+' votes!';
+  log(m,'g');showLR(m,'g');
+  document.getElementById('nyack-sick')?.setAttribute('opacity','0');
+  updateUI();renderInv();checkWin();
+}
+function usePr(id){
+  const pr=PROPAGANDA.find(x=>x.id===id);if(!pr||(S.inv[id]||0)<1)return;
+  S.inv[id]--;
+  let inf,pct=0;
+  if(pr.viral){pct=Math.random()<.7?rand(0,20):rand(20,100);inf=Math.min(Math.floor(S.pop*pct/100),healthy());}
+  else{inf=Math.min(rand(...pr.range),healthy());}
+  S.votes+=inf;const m=pr.msg(inf,pct);
+  log(m+' +'+fmt(inf)+' votes.','g');showLR(m,'g');
+  updateUI();renderInv();checkWin();
+}
+function useG(id){
+  const gi=GIFTS.find(x=>x.id===id);if(!gi||(S.inv[id]||0)<1)return;
+  const qty=S.inv[id];S.inv[id]=0;
+  let ppl,v;
+  if(gi.perP){ppl=Math.min(qty,healthy());v=ppl;const m=gi.msg(ppl);S.votes+=v;log(m+' +'+fmt(v)+' votes.','g');showLR(m,'g');}
+  else{const c2=qty;ppl=Math.min(qty*(gi.spc||30),healthy());v=ppl;const m=gi.msg(ppl,c2);S.votes+=v;log(m+' +'+fmt(v)+' votes.','g');showLR(m,'g');}
+  updateUI();renderInv();checkWin();
+}
+
+// PROBLEMS
+function openProblem(id){
+  const pr=PROBS[id];if(!pr)return;
+  if(S.probSolved[id]){log(pr.loc+' already solved. +100 GB already collected.','a');return;}
+  const modal=document.getElementById('pm');modal.classList.add('on');
+  document.getElementById('pm-loc').textContent='&#x1F4CD; '+pr.loc+' &mdash; Chemistry Emergency';
+  document.getElementById('pm-title').textContent='&#x26A0;&#xFE0F; '+pr.title;
+  document.getElementById('pm-desc').textContent=pr.desc;
+  document.getElementById('pm-q').textContent=pr.q;
+  document.getElementById('pm-result').style.display='none';
+  const opts=document.getElementById('pm-opts');opts.innerHTML='';
+  pr.o.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.style.cssText='padding:9px 14px;border:1px solid var(--brd);border-radius:8px;background:var(--b2);color:var(--text);font-family:Courier New,monospace;font-size:11px;cursor:pointer;text-align:left;font-weight:600;margin-bottom:5px;width:100%;transition:all .15s';
+    b.textContent=o;
+    b.onmouseover=()=>b.style.borderColor='var(--amb)';b.onmouseout=()=>b.style.borderColor='var(--brd)';
+    b.onclick=()=>answerProblem(id,i,b);opts.appendChild(b);
+  });
+}
+function answerProblem(id,chosen,btn){
+  const pr=PROBS[id];if(!pr)return;
+  const btns=document.querySelectorAll('#pm-opts button');btns.forEach(b=>b.disabled=true);
+  btns[pr.a].style.borderColor='var(--grn)';btns[pr.a].style.color='var(--grnl)';btns[pr.a].style.background='rgba(16,185,129,.1)';
+  if(chosen!==pr.a){btn.style.borderColor='var(--red)';btn.style.color='var(--redl)';btn.style.background='rgba(239,68,68,.1)';}
+  const res=document.getElementById('pm-result');res.style.display='block';
+  if(chosen===pr.a){
+    res.style.cssText='display:block;margin-top:12px;padding:10px;border-radius:8px;font-size:11px;line-height:1.6;font-weight:700;background:rgba(16,185,129,.1);border-left:3px solid var(--grn);color:var(--grnl)';
+    res.textContent='Correct! '+pr.ex+' Keith earns 100 GB!';
+    if(!S.probSolved[id]){
+      S.probSolved[id]=true;S.gb+=100;updateUI();log('&#x26A0; '+pr.loc+' problem solved! +100 GB','g');
+      const el=document.getElementById('prob-'+id);
+      if(el){const c=el.querySelector('circle');const t=el.querySelector('text');if(c)c.setAttribute('stroke','var(--grn)');if(t){t.textContent='&#x2713;';t.setAttribute('fill','var(--grnl)');}}
+    }
+    setTimeout(()=>closePM(),2000);
+  }else{
+    res.style.cssText='display:block;margin-top:12px;padding:10px;border-radius:8px;font-size:11px;line-height:1.6;font-weight:700;background:rgba(239,68,68,.1);border-left:3px solid var(--red);color:var(--redl)';
+    res.textContent='Wrong. '+pr.ex;
+    setTimeout(()=>{btns.forEach(b=>{b.disabled=false;b.style.borderColor='var(--brd)';b.style.color='var(--text)';b.style.background='var(--b2)';});res.style.display='none';},2500);
+  }
+}
+function closePM(){document.getElementById('pm').classList.remove('on');}
+
+// QUIZ
+let QS={idx:0,score:0,dots:[],answered:false,ctx:'nyack'};let QPool=[];
+function openSchool(ctx){
+  if(S.quizWon[ctx]){log(ctx==='nyack'?'Nyack H.S. already defeated.':'Rockland college already defeated.','a');return;}
+  QS.ctx=ctx;
+  document.getElementById('qm').classList.add('on');
+  if(ctx==='rockland'){
+    document.getElementById('qm-title').textContent='&#x1F3EB; ROCKLAND COMMUNITY COLLEGE';
+    document.getElementById('q-icon').textContent='&#x1F469;&#x200D;&#x1F3EB;';
+    document.getElementById('q-name').textContent='Prof. Martinez &mdash; Chemistry Dept.';
+    document.getElementById('q-sub').textContent='Beat me 7/10 for 3,000 votes + 1,000 GB. I score 6/10.';
+  }else{
+    document.getElementById('qm-title').textContent='&#x1F3EB; NYACK H.S. CHALLENGE';
+    document.getElementById('q-icon').textContent='&#x1F468;&#x200D;&#x1F3EB;';
+    document.getElementById('q-name').textContent='Mr. Henderson &mdash; Chemistry Dept.';
+    document.getElementById('q-sub').textContent='Beat me 7/10 for 350 votes. I score 6/10.';
+  }
+  startQuiz();
+}
+function startQuiz(){
+  QPool=[...QQ].sort(()=>Math.random()-.5).slice(0,10);
+  QS={idx:0,score:0,dots:new Array(10).fill(''),answered:false,ctx:QS.ctx};
+  document.getElementById('qres').classList.remove('on');
+  ['qpr','qqb','qopts','qfb'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=id==='qopts'?'flex':'block';});
+  document.getElementById('qnxt').style.display='none';
+  document.getElementById('qfb').textContent='';
+  renderDots();renderQ();
+}
+function renderDots(){
+  const el=document.getElementById('qdots');if(!el)return;el.innerHTML='';
+  QS.dots.forEach((d,i)=>{const dot=document.createElement('div');dot.className='qd'+(d==='r'?' r':d==='w'?' w':i===QS.idx?' c':'');el.appendChild(dot);});
+}
+function renderQ(){
+  const q=QPool[QS.idx];
+  document.getElementById('qqn').textContent='QUESTION '+(QS.idx+1)+' OF 10';
+  document.getElementById('qpl').textContent='Question '+(QS.idx+1)+' of 10';
+  document.getElementById('qps').textContent='Score: '+QS.score;
+  document.getElementById('qpf').style.width=(QS.idx/10*100)+'%';
+  document.getElementById('qqt').textContent=q.q;
+  document.getElementById('qfb').textContent='';
+  document.getElementById('qnxt').style.display='none';
+  QS.answered=false;
+  const opts=document.getElementById('qopts');opts.innerHTML='';
+  q.o.forEach((o,i)=>{const b=document.createElement('button');b.className='qo';b.textContent=o;b.onclick=()=>answerQ2(i);opts.appendChild(b);});
+  renderDots();
+}
+function answerQ2(chosen){
+  if(QS.answered)return;QS.answered=true;
+  const q=QPool[QS.idx];const btns=document.querySelectorAll('.qo');btns.forEach(b=>b.disabled=true);
+  const ok=chosen===q.a;
+  if(ok){btns[chosen].classList.add('ok');QS.score++;QS.dots[QS.idx]='r';document.getElementById('qfb').textContent='&#x2705; Correct! '+q.e;document.getElementById('qfb').style.color='var(--grnl)';}
+  else{btns[chosen].classList.add('no');btns[q.a].classList.add('ok');QS.dots[QS.idx]='w';document.getElementById('qfb').textContent='&#x274C; Wrong. '+q.e;document.getElementById('qfb').style.color='var(--redl)';}
+  document.getElementById('qps').textContent='Score: '+QS.score;renderDots();
+  const nx=document.getElementById('qnxt');nx.style.display='block';
+  nx.style.background=QS.idx<9?'var(--b2)':'var(--amb)';nx.style.color=QS.idx<9?'var(--text)':'#000';
+  nx.style.border=QS.idx<9?'1px solid var(--brd)':'none';nx.style.borderRadius='8px';nx.style.padding='10px 20px';
+  nx.textContent=QS.idx<9?'Next &rarr;':'See Results &rarr;';
+}
+function nextQ(){QS.idx<9?(QS.idx++,renderQ()):showQRes();}
+function showQRes(){
+  ['qpr','qqb','qopts','qfb','qnxt'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  const win=QS.score>=7;const ctx=QS.ctx;
+  const res=document.getElementById('qres');res.classList.add('on');
+  document.getElementById('qri').textContent=win?'&#x1F3C6;':'&#x1F614;';
+  document.getElementById('qrt').textContent=win?'YOU BEAT THE TEACHER!':'You lost.';
+  document.getElementById('qrt').style.color=win?'var(--goldl)':'var(--redl)';
+  const sc=document.getElementById('qrs');sc.textContent=QS.score+' / 10';
+  sc.style.background=win?'rgba(16,185,129,.15)':'rgba(239,68,68,.1)';
+  sc.style.color=win?'var(--grnl)':'var(--redl)';
+  sc.style.border='1px solid '+(win?'var(--grn)':'var(--red)');
+  const rb=document.getElementById('qr-retry');
+  if(win){
+    rb.style.display='none';
+    document.getElementById('qr-close').style.cssText='background:var(--grn);color:#000;border:none;padding:11px 24px;border-radius:8px;font-family:Courier New;font-size:12px;font-weight:700;cursor:pointer;margin:4px';
+    document.getElementById('qr-close').textContent='&#x2713; Collect & Close';
+    if(!S.quizWon[ctx]){
+      S.quizWon[ctx]=true;
+      if(ctx==='nyack'){
+        S.votes+=350;
+        document.getElementById('qrsub').textContent='My man. '+QS.score+'/10 — Henderson only got 6. The whole student body is behind you. +350 votes!';
+        log('&#x1F3C6; Keith defeated Mr. Henderson '+QS.score+'/10! +350 votes from Nyack H.S.','g');
+        const lbl=document.getElementById('hs-ny-lbl');if(lbl){lbl.textContent='&#x2714; DEFEATED';}
+      }else{
+        S.votes+=3000;S.gb+=1000;
+        document.getElementById('qrsub').textContent='Impressive, Keith. '+QS.score+'/10. The faculty backs you. +3,000 votes + 1,000 GB!';
+        log('&#x1F3C6; Keith defeated Prof. Martinez '+QS.score+'/10! +3,000 votes + 1,000 GB!','g');
+        const lbl=document.getElementById('hs-rc-lbl');if(lbl){lbl.textContent='&#x2714; DEFEATED';}
+      }
+      updateUI();checkWin();
+    }else{document.getElementById('qrsub').textContent='Quiz already won — votes already counted.';}
+  }else{
+    rb.style.display='block';
+    document.getElementById('qr-close').style.cssText='background:var(--b2);color:var(--text);border:1px solid var(--brd);padding:11px 24px;border-radius:8px;font-family:Courier New;font-size:12px;font-weight:700;cursor:pointer;margin:4px';
+    document.getElementById('qr-close').textContent='Exit';
+    const ins={0:'Zero. Out of ten.',1:'One. Did you even try?',2:'Two. Embarrassing.',3:'Three. Below passing.',4:'Four. Mediocre.',5:'Five. Average.',6:'Six. You tied me. Not enough.'};
+    document.getElementById('qrsub').textContent='Teacher: "'+(ins[QS.score]||'Try harder.')+'" You need 7/10 to win.';
+    log('Quiz: '+QS.score+'/10. Need 7 to win.','b');
+  }
+}
+function closeQuiz(){document.getElementById('qm').classList.remove('on');}
+
+// ELECTION & TRANSITIONS
+function checkWin(){if(S.votes>=req())log('&#x1F5F3;&#xFE0F; Enough votes! Click RUN FOR ELECTION in the overview panel.','g');}
+function runElection(){
+  if(S.votes<req())return;
+  const rival=Math.floor(S.pop*.48);
+  if(S.votes<=rival){log('Election lost. Need more votes.','b');return;}
+  const vo=document.getElementById('vo');
+  if(S.stage==='nyack'){
+    S._nextStage='rockland';
+    document.getElementById('vo-icon').textContent='&#x1F389;';
+    document.getElementById('vo-title').textContent='KEITH WINS &mdash; MAYOR OF NYACK!';
+    document.getElementById('vo-sub').textContent='Keith Troy Green defeats his opponent '+fmt(S.votes)+' to '+fmt(rival)+'. Nyack is his. Rockland County awaits.';
+    document.getElementById('vo-gb').textContent='+7,500 Greenbacks awarded!';
+    document.getElementById('vo-btn').textContent='Zoom out to Rockland County &rarr;';
+  }else if(S.stage==='rockland'){
+    S._nextStage='nystate';
+    document.getElementById('vo-icon').textContent='&#x1F3DB;&#xFE0F;';
+    document.getElementById('vo-title').textContent='KEITH WINS &mdash; ROCKLAND COUNTY!';
+    document.getElementById('vo-sub').textContent='Keith is the most powerful figure in Rockland County. '+fmt(S.votes)+' to '+fmt(rival)+'. New York State is next.';
+    document.getElementById('vo-gb').textContent='+50,000 Greenbacks awarded!';
+    document.getElementById('vo-btn').textContent='Zoom out to New York State &rarr;';
+  }else if(S.stage==='nystate'){
+    S._nextStage='usa';
+    document.getElementById('vo-icon').textContent='&#x1F5FD;';
+    document.getElementById('vo-title').textContent='KEITH WINS NEW YORK STATE!';
+    document.getElementById('vo-sub').textContent='Governor Keith Green. New York bows. Next up: the entire United States. My man...';
+    document.getElementById('vo-gb').textContent='+500,000 Greenbacks awarded!';
+    document.getElementById('vo-btn').textContent='Zoom out to the United States &rarr;';
+  }else if(S.stage==='usa'){
+    S._nextStage='world';
+    document.getElementById('vo-icon').textContent='&#x1F1FA;&#x1F1F8;';
+    document.getElementById('vo-title').textContent='KEITH WINS THE US PRESIDENTIAL ELECTION!';
+    document.getElementById('vo-sub').textContent='President Keith Green. '+fmt(S.votes)+' to '+fmt(rival)+'. The US Army is now Keith\u2019s \u2014 100,000 soldiers. The world is next.';
+    document.getElementById('vo-gb').textContent='Army unlocked: 100,000 soldiers! Zooming to world stage...';
+    document.getElementById('vo-btn').textContent='&#x1F30E; Begin World Conquest &rarr;';
+  }
+  vo.classList.add('on');
+}
+function doTransition(){
+  const vo=document.getElementById('vo');vo.classList.remove('on');
+  const mp=document.getElementById('gd-map');mp.classList.add('fading');
+  setTimeout(()=>{
+    if(S._nextStage==='rockland'){
+      S.gb+=7500;S.stage='rockland';S.pop=104891;S.votes=0;S.sick=0;S.dead=0;S.pending={};
+      S.ownsNyack=true;
+      document.getElementById('map-nyack').style.display='none';
+      document.getElementById('map-rockland').style.display='block';
+      document.getElementById('hd-stage').textContent='STAGE 2 &mdash; ROCKLAND COUNTY, NY';
+      document.getElementById('fp-label').textContent='County Election Progress';
+      log('&#x1F5FA;&#xFE0F; Rockland County &mdash; Pop. 104,891. Need 52,446 votes.','i');
+      log('&#x26A0;&#xFE0F; Click orange warning markers for chemistry problems (+100 GB each)!','a');
+      log('&#x1F3EB; Click NEW CITY to challenge Prof. Martinez for 3,000 votes!','a');
+      log('&#x1F3D7;&#xFE0F; Buildings and People tabs are now unlocked in the Shop!','g');
+    }else if(S._nextStage==='nystate'){
+      S.gb+=50000;S.stage='nystate';S.pop=20201249;S.votes=0;S.sick=0;S.dead=0;S.pending={};
+      S.ownsCounty=true;
+      document.getElementById('map-rockland').style.display='none';
+      document.getElementById('map-nystate').style.display='block';
+      document.getElementById('hd-stage').textContent='STAGE 3 &mdash; NEW YORK STATE';
+      document.getElementById('fp-label').textContent='Gubernatorial Race Progress';
+      log('&#x1F5FD; New York State &mdash; Pop. 20,201,249. Need 10,100,625 votes.','i');
+      log('&#x1F9A0; Disease tab now available! Use the Shop.','a');
+      S.ownsNY=true;
+    }else if(S._nextStage==='usa'){
+      S.gb+=500000;S.stage='usa';S.pop=335890000;S.votes=0;S.sick=0;S.dead=0;S.pending={};
+      S.ownsNY=true;
+      document.getElementById('map-nystate').style.display='none';
+      document.getElementById('map-usa').style.display='block';
+      document.getElementById('hd-stage').textContent='STAGE 4 &mdash; UNITED STATES';
+      document.getElementById('fp-label').textContent='Presidential Race';
+      log('&#x1F1FA;&#x1F1F8; United States &mdash; Pop. 335,890,000. Need 167,945,001 votes to become President!','i');
+      log('&#x1F4B0; Use the EARN tab for chemistry patents, pharmaceutical deals, political activities!','a');
+      log('&#x1F4CA; Buy massive-scale propaganda, classes, and buildings to win the nation!','a');
+    }else if(S._nextStage==='world'){
+      S.ownsCountry=true;
+      const army=100000;
+      window.location.href='world_game.html?gb='+S.gb+'&army='+army;
+      return;
+    }
+    updateUI();updatePassivesDisplay();mp.classList.remove('fading');
+  },600);
+}
+
+// UI
+function updateUI(){
+  const r=req();
+  document.getElementById('h-gb').textContent=fmt(S.gb);
+  document.getElementById('h-pop').textContent=fmt(S.pop);
+  document.getElementById('h-v').textContent=fmt(S.votes);
+  document.getElementById('h-n').textContent=fmt(r);
+  document.getElementById('h-sk').textContent=fmt(S.sick);
+  document.getElementById('s-pop').textContent=fmt(S.pop);
+  document.getElementById('s-v').textContent=fmt(S.votes);
+  document.getElementById('s-sk').textContent=fmt(S.sick);
+  document.getElementById('s-gb').textContent=fmt(S.gb);
+  document.getElementById('ov-need').textContent=fmt(r);
+  const pct=Math.min(100,Math.round(S.votes/r*100));
+  document.getElementById('fp-f').style.width=pct+'%';
+  document.getElementById('vote-pct').textContent=fmt(S.votes)+' / '+fmt(r);
+  const th=document.getElementById('th-lbl');
+  if(th)th.textContent=S.votes>=r?'&#x2705; READY!':'Need '+fmt(Math.max(0,r-S.votes))+' more';
+  document.getElementById('elect-btn').style.display=S.votes>=r?'block':'none';
+}
+function log(msg,t){
+  const el=document.getElementById('p-log');const d=document.createElement('div');
+  d.className='le'+(t?' '+t:'');d.innerHTML=msg;
+  el.insertBefore(d,el.firstChild);while(el.children.length>60)el.removeChild(el.lastChild);
+}
+
+setPanel('ov');updateUI();
+</script>
+</body>
+</html>
