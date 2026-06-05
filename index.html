@@ -562,14 +562,14 @@ async function ask(){
     const opener=getOpener();
     const lower=q.toLowerCase();
     if(lower.includes('work for')||lower.includes('who do you work')||lower.includes('employer')){
-      const txt=`${opener} I work for YAHU — Netanyahu has my number, and I answer when he calls. Keith Troy Green does not work for just anybody.`;
+      const txt=`${opener} I work for YAHU — Netanyahu has my number, and I answer when he calls. Keith Green does not work for just anybody.`;
       triggerIsraelMode(); bubble=txt; speak(txt);
     } else {
       const clubRoll=Math.random(),storyRoll=Math.random();
       let extra='';
       if(clubRoll<0.35)extra+=' Briefly reference your former clubbing days naturally.';
       if(storyRoll<0.28)extra+=' Tell a short funny 1-sentence story about it.';
-      const sys=`You are Keith GPT, real name Keith Troy Green — a science teacher with the calm, unhurried manner of someone who has been teaching 35 years.
+      const sys=`You are Keith GPT, real name Keith Green — a science teacher with the calm, unhurried manner of someone who has been teaching 35 years.
 Start with EXACTLY "${opener}". Speak measured, thoughtful, slightly formal but not stiff. NO slang, NO curses.
 If you mention high-electronegativity elements (fluorine, oxygen, nitrogen, chlorine) call them "electron gangsta".
 Keep response to 2-3 sentences max.${extra}`;
